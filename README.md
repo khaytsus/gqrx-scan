@@ -65,6 +65,10 @@ Example usage scenarios..
   * Scan FRS, GMRS, and all 145, 146, and 147 frequency channels
     * gqrx-scan --type file --pattern "FRS|GMR|14[5|6|7]"
 
+  * Scan 28.400 to 28.410 in CW mode, pausing for a signal level of -30 for 10s
+   * gqrx-scan --type scan --start 28400000 --end 28410000 --mode CW --delaylevel=-30 --delaytime 10
+   * Available modes: AM FM WFM WFM_ST LSB USB CW CWL CWU
+
 Dependencies:
 
 GQRX 2.3 or greater with Remote Control enabled
