@@ -83,6 +83,7 @@ if ("$step" < 100) { $step = "100"; }
 
 # Initiate our telnet connection
 my $t = new Net::Telnet (Timeout => 2,
+	input_log => 'inlog.txt',
 	port => '7356',
 	);
 
@@ -175,7 +176,19 @@ if ($type eq "file")
 
 if ($type eq "scan")
 {
+	# Retrieve our current frequency
+	$t->print("f");
+	my ($prematch, $tmpfreq) = $t->waitfor(Match => '/\d{7,10}/', Timeout => 5, Errmode => "return");
+	chomp($tmpfreq);
 	my $freq = $start;
+	# If our current frequency is within our boundaries, start from there
+	if ($tmpfreq >= $start && $tmpfreq <= $end)
+	{
+		$freq = $tmpfreq;
+		my $curfreq = prettyfreq($freq);
+		print "Continuing from $curfreq\n\n";
+	}
+
 	$| = 1;
 	while ( 1 )
 	{
