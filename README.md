@@ -67,14 +67,15 @@ Control GRQX to scan frequencies or from channels using a CSV file.
   * --levelstop=0                   Do not pause to listen for signal
     * Note the requirement of the equal sign
 
+### Defaults vs Command Line
+
+There are options in the script which can be modified to set them as defaults but almost all options (such as signal detection level, scan pause time, etc) can be specified on the command line.
+
 ### Bookmarks file
 
-The CSV file that can be used for scanning pre-set channels is the same format
-as the gqrx-remote project (https://github.com/marmelo/gqrx-remote) uses, without
-any headers, with the columns being HZ,MODE,Name
+The CSV file that can be used for scanning pre-set channels is the same format as the gqrx-remote project (https://github.com/marmelo/gqrx-remote) uses, without any headers, with the columns being HZ,MODE,Name
 
-The CSV file path is defined in the file and should be updated for where your
-file is located.
+The CSV file path is defined in the file and should be updated for where your file is located.
 
 Example:
 
@@ -82,9 +83,6 @@ Example:
 28400000,USB,10m Calling<br>
 446000000,FM,440 Simplex<br>
 144200000,LSB,2m SSB Calling<br>
-
-There are other options in the file which can be modified to set them as defaults
-but almost all can be specified on the command line.
 
 ### Troubleshooting
 
