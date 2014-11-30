@@ -31,6 +31,7 @@ Control GRQX to scan frequencies or from channels using a CSV file.
 
   * Scan 28.400 to 28.410 in CW mode, pausing for a signal level of -30 for 10s
    * gqrx-scan --type scan --start 28400000 --end 28410000 --mode CW --delaylevel=-30 --delaytime 10
+    * 28.400e6 is valid too and might be easier to type/read
    * Available modes: AM FM WFM WFM_ST LSB USB CW CWL CWU
 
 ### Command Line Arguments
