@@ -1,0 +1,471 @@
+#!/usr/bin/perl
+
+# A channel or frequency scanner for GQRX.  Remote Control must be enabled in GQRX
+# Channel mode is driven by a CSV file of the format HZ,MODE,NAME or same as the
+# output of the GQRX Remote application
+
+use Net::Telnet;
+use Time::HiRes;
+use Getopt::Long;
+use strict;
+
+# Some defaults, all of these can be over-ridden by options except $levelwait
+
+# Location of the CSV file to scan
+my $csv = "/opt/gqrx-remote/gqrx-bookmarks.csv";
+
+# Delay scanning if we hear a signal
+my $levelstop = 1;
+
+# Default Level that will cause a scanning delay
+my $delaylevel = "-40";
+
+# Time delay before checking signal level after changing channels
+# Increase this if you find it going to the next channel then waiting
+# when a signal is detected, it seems to take a while to detect
+my $levelwait = ".3";
+
+# Time to wait if signal is detected
+my $delaytime = "5";
+
+# Time between switching channels/frequencies (cannot be less than
+# the time it takes to determine the signal level)
+my $pause = 0.5;
+
+# Hz to increment by in frequency scan mode
+my $step = "5000";
+
+### No need to touch below here
+
+# Available GQRX demodulation modes
+my @modes = ("AM", "FM", "WFM", "WFM_ST", "LSB", "USB", "CW", "CWL", "CWU");
+
+# Other globals to declare
+my ($type, $mode, $start, $end, $channel, $channels, $showall, $pattern, $exclude,
+	$stop, $wait, $record, $dumpchannels, $help, @exclude, @channels);
+
+# Get our command line options
+GetOptions(
+	'type=s' => \$type,
+	'mode:s' => \$mode,
+	'start:s' => \$start,
+	'end:s' => \$end,
+	'channel:s' => \$channel,
+	'channels:s' => \$channels,
+	'showall' => \$showall,
+	'step:s' => \$step,
+	'pattern=s' => \$pattern,
+	'exclude=s' => \$exclude,
+	'delaylevel:s' => \$delaylevel,
+	'delaytime:f' => \$delaytime,
+	'pause:s' => \$pause,
+	'stop' => \$stop,
+	'wait' => \$wait,
+	'levelstop:s' => \$levelstop,
+	'record' => \$record,
+	'dumpchannels' => \$dumpchannels,
+	'help' => \$help
+	);
+
+# Check sane usage for different modes
+checkusage();
+
+# Print some information at the beginning of the run
+header();
+
+# Sanity check some settings
+
+# Our channel delay can't be less than our levelwait variable
+if ($pause < $levelwait ) { $pause = $levelwait; }
+
+# We don't want an insanely low step do we?
+if ("$step" < 100) { $step = "100"; }
+
+# Initiate our telnet connection
+my $t = new Net::Telnet (Timeout => 2,
+	port => '7356',
+	);
+
+$t->open('127.0.0.1');
+
+if ($type eq "file")
+{
+	$| = 1;
+	my $fileline = 0;
+	unless (-e "$csv")
+	{
+		die "Bookmark file does not exist:  $csv\n";
+	}
+	open(my $csvfile, "<$csv");
+	while (1)
+	{
+		while (my $line = <$csvfile>)
+		{
+			my $tune = 0;
+			my $excluded = 0;
+			chomp($line);
+			my ($freq,$mode,@name) = split(',',$line);
+			$freq =~ s/[^0-9]//g;
+			$mode =~ s/[^A-Z]//g;
+			my $name = join(" ",@name);
+			$name =~ s/[^a-zA-Z0-9 ]//g;
+			my $curfreq = prettyfreq($freq);
+
+			# If we have channels, match them up and tune
+			if (@channels)
+			{
+				foreach(@channels)
+				{
+					if ($fileline eq $_)
+					{
+#print "matched channel number\n";
+						$tune = 1;
+						last;
+					}
+				}
+			}
+			# If no channels, and no pattern, tune in
+			elsif ($pattern eq "")
+			{
+#print "no channels and no pattern, tune all\n";
+				$tune = 1;
+			}
+			# If we specified a pattern, match it up
+			elsif  ($pattern && (($name =~ /$pattern/) || ($curfreq =~ /$pattern/)))
+			{
+#print "$pattern matched\n";
+				$tune = 1;
+			}
+
+			# Exclude frequencies
+			if (@exclude)
+			{
+				foreach(@exclude)
+				{
+					if ($freq eq $_)
+					{
+						$tune = 0;
+						$excluded = 1;
+						last;
+					}
+				}
+			}
+
+			# Just dump the channel list if asked
+			if ($dumpchannels) { $tune = 0; }
+
+			# If we matched, tune in
+			if ($tune)
+			{
+				tune($freq, $mode, $curfreq, $name, $fileline, "", "");
+			}
+			else
+			{
+				if ($showall || $excluded || $dumpchannels)
+				{
+					printf('%12s' . " - " . '%20s' . " - [" . '%5s' . "] [" . '%5s' . "] [Line " . '%3s' . "] --- Skipped\n",$curfreq,$name,$mode,"n/a",$fileline);
+				}
+			}
+			$fileline++;
+		}
+		if ($dumpchannels) { last; }
+		seek $csvfile, 0, 0;
+		$fileline = 0;
+		print "--- Repeating ---\n";
+	}
+	close($csv);
+}
+
+if ($type eq "scan")
+{
+	my $freq = $start;
+	$| = 1;
+	while ( 1 )
+	{
+		my $tune = 1;
+		my $curfreq = prettyfreq($freq);
+		my $startfreq = prettyfreq($start);
+		my $endfreq = prettyfreq($end);
+
+		# Exclude frequencies
+		if (@exclude)
+		{
+			foreach(@exclude)
+			{
+				if ($freq eq $_)
+				{
+					$tune = 0;
+					last;
+				}
+			}
+		}
+		if ($tune)
+		{
+			tune($freq, $mode, $curfreq, "", "", $startfreq, $endfreq);
+		}
+		else
+		{
+			print "Skipped $freq\n";
+		}
+		$freq = $freq + $step;
+		if ($freq > $end)
+		{
+			$freq = $start;
+			print "--- Repeating\n";
+		}
+	}
+}
+
+exit;
+
+# Tune into frequency
+sub tune
+{
+	my ($freq, $mode, $curfreq, $name, $fileline, $startfreq, $endfreq) = (@_);
+	$t->print("F $freq");
+	$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
+	$t->print("M $mode");
+	$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
+	my $level = "n/a";
+	if ($levelstop)
+	{
+		Time::HiRes::sleep($levelwait);
+		$t->print("l");
+		my $prematch;
+		($prematch, $level) = $t->waitfor(Match => '/-{0,1}\d+\.\d/', Timeout => 5, Errmode => "return"); 
+		chomp($level);
+	}
+	if ($type eq "scan")
+	{
+		printf('%12s' . " --- [" . '%12s' . " - " . '%12s' . "] [" . '%s' . "] [" . '%s' . "kHz] [" . '%5s' . "]",$curfreq,$startfreq,$endfreq,$level,$step/1000,$mode);
+	}
+	else
+	{
+		printf('%12s' . " - " . '%20s' . " - [" . '%5s' . "] [" . '%5s' . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$fileline);
+	}
+
+	# If the signal level is above the threshold, stay on this frequency for a while
+	if ($levelstop && $level ne "" && $level > $delaylevel)
+	{
+		# Start recording
+		if ($record)
+		{
+			$t->print("AOS");
+			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
+		}
+
+		if ($wait)
+		{
+			print " --- Waiting for clear...";
+			if ($record) { print "  (Recording)"; }
+			print "\n";
+			Time::HiRes::sleep($delaytime);
+			my $waitlevel = 0;
+			while ($waitlevel > $delaylevel)
+			{
+				Time::HiRes::sleep($levelwait);
+				$t->print("l");
+				my $prematch;
+				($prematch, $waitlevel) = $t->waitfor(Match => '/-{0,1}\d+\.\d/', Timeout => 5, Errmode => "return"); 
+			}
+		}
+		elsif ($stop)
+		{
+			print " --- Hit enter to continue..";
+			if ($record) { print "  (Recording)"; }
+			<STDIN>;
+		}
+		else
+		{
+			print " --- Signal detected, waiting...";
+			if ($record) { print "  (Recording)"; }
+			print "\n";
+			Time::HiRes::sleep($delaytime);
+		}
+
+		# Stop recording
+		if ($record)
+		{
+			$t->print("LOS");
+			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
+		}
+	}
+	else
+	{
+		Time::HiRes::sleep($pause - $levelwait);
+		print "\n";
+	}
+}
+
+# Check command line usage is sane and print some info
+sub checkusage
+{
+	if ($help)
+	{
+		usage();
+	}
+
+	# Convert exclude argument to array, including sci notation
+	if ($exclude)
+	{
+		my @tmp = split(',',$exclude);
+
+		foreach(@tmp)
+		{
+			my $tmp = sprintf("%.10g", $_);
+			push(@exclude,sprintf("%.10g", $_));
+		}
+	}
+
+	if ($type eq "file")
+	{
+		# Accept --channels or --channel as argument for channels
+		if ($channels && $channel == "") { $channel = $channels; }
+
+		# Convert channel argument to array
+		# Comma saparated list of channels
+		if ($channel =~ /,/)
+		{
+			@channels = split(',',$channel);
+		}
+
+		if ($channel =~ /-/)
+		{
+			my ($first,$last) = split('-',$channel);
+			for (my $i=$first; $i <= $last; $i++)
+			{
+				push(@channels,$i);
+			}
+		}
+
+		if (@channels)
+		{
+			print "Starting in $type mode scanning for channels: ";
+			foreach(@channels) { print "$_ "; }
+			print "\n\n";
+		}
+		elsif ($pattern)
+		{
+			print "Starting in $type mode scanning for pattern: $pattern\n\n";
+		}
+		else
+		{
+			print "Starting in $type mode scanning all channels\n\n";
+		}
+	}
+	elsif ($type eq "scan")
+	{
+		if ($start eq "" || $end eq "" || $mode eq "") { usage(); }
+
+		# Require a valid mode
+		unless (grep(/$mode/, @modes))
+		{
+			print "Mode is invalid:  [$mode]\n\nAvailable modes:  ";
+			foreach(@modes) { print "$_ "; }
+			print "\n";
+			exit;
+		}
+
+		# Start has to be bigger than end
+		if ($end < $start)
+		{
+			die "$end is less than $start\n";
+		}
+		unless ($delaylevel =~ /-.*/)
+		{
+			die "Invalid signal strength:  [$delaylevel]\n";
+		}
+
+		# Expand our frequencies if we passed in scientific notation
+		$start = sprintf("%.10g", $start);
+		$end = sprintf("%.10g", $end);
+
+		my $startfreq = prettyfreq($start);
+		my $endfreq = prettyfreq($end);
+
+		print "Starting in $type mode from $startfreq to $endfreq in $mode mode\n";
+		print "Signal level delay level of $delaylevel waiting for " . $delaytime . "s\n\n";
+	}
+	else
+	{
+		usage();
+	}
+}
+
+# Print a header of some options we've selected
+sub header
+{
+	if ($dumpchannels)
+	{
+		print "Dumping channel list and exiting\n\n";
+	}
+
+	if ($levelstop)
+	{
+		if ($wait)
+		{
+			print "On detection of signal will wait until channel is clear\n\n";
+		}
+
+		if ($stop)
+		{
+			print "On detection of signal will wait for keyboard input\n\n";
+		}
+	}
+	else
+	{
+		print "Not stopping for signal detection\n\n";
+	}
+
+	print "Channel/Frequency pause time:  " . $pause . "s\n";
+	print "Delaylevel: [$delaylevel]  Delaytime: [$delaytime]\n\n";
+}
+
+# Return back ##.### ### format readable frequency string
+sub prettyfreq()
+{
+	my ($freq) = (@_);
+	chomp($freq);
+	my $subfreq = substr($freq, -3);
+	my $mainfreq = substr($freq, 0, length($freq)-3);
+	$mainfreq = sprintf("%.3f", $mainfreq / 1000);
+	return "$mainfreq $subfreq";
+}
+
+# Sanity check our usage and parameters
+sub usage
+{
+	print "$0 - Control GRQX to scan.\n\n";
+
+	print "$0 --type [file scan] --help for mode help on each mode\n\n";
+
+	print "All frequencies are given in Hz, but can be given in scientific notation\n";
+	print "if desired.  ie:  28.410e6 and 28410000 are equivalent.\n\n";
+
+	print "Scan mode operations:\n\n";
+	print "--start 28400000		Start at frequency 28.400\n";
+	print "--end 28410000 			Stop at frequency 28.410\n";
+	print "--mode USB			Scan in USB demodulation\n\n";
+
+	print "File mode options:\n\n";
+	print "--channels 19,20,30		Scan channels 19, 20, and 30\n";
+	print "--channels 19-30		Scan channels 19 through 30\n";
+	print "--pattern \"FRS|GMR|^145\"	Scan channels named FRS or GMR or frequencies starting with 145\n";
+	print "--showall			Show all channels even if skipped\n";
+	print "--dumpchannels			Show all channels, do not tune any\n\n";
+
+	print "General scan or file options:\n\n";
+	print "--pause 2			Wait 2 seconds between frequencies/channels\n";
+	print "--step 250			Step by 250mhz in frequency scanning mode\n";
+	print "--exclude 28.401e6,28.410e6	Exclude frequency 28 401 and 28 410\n\n";
+
+	print "Signal detection options:\n\n";
+	print "--delaylevel=-30		Delay scanning if a signal of -30 or better is heard\n";
+	print "--delaytime 10			Delay scanning for 10s when a signal is detected\n";
+	print "--record			Record when signal is detected\n";
+	print "--stop				Stop scanning until the enter key is hit\n";
+	print "--wait				Stop scanning until the channel is clear\n";
+	print "--levelstop=0			Do not pause to listen for signal\n";
+
+	exit;
+}
