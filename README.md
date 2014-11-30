@@ -31,8 +31,8 @@ Control GRQX to scan frequencies or from channels using a CSV file.
 
   * Scan 28.400 to 28.410 in CW mode, pausing for a signal level of -30 for 10s
    * gqrx-scan --type scan --start 28400000 --end 28410000 --mode CW --delaylevel=-30 --delaytime 10
-    * 28.400e6 is valid too and might be easier to type/read
-   * Available modes: AM FM WFM WFM_ST LSB USB CW CWL CWU
+     * 28.400e6 is valid too and might be easier to type/read
+     * Available modes: AM FM WFM WFM_ST LSB USB CW CWL CWU
 
 ### Command Line Arguments
 
@@ -59,11 +59,13 @@ Control GRQX to scan frequencies or from channels using a CSV file.
 ##### Signal detection options
 
   * --delaylevel=-30                Delay scanning if a signal of -30 or better is heard
+    * Note that this argument requires the equal sign
   * --delaytime 10                  Delay scanning for 10s when a signal is detected
   * --record                        Record when signal is detected
   * --stop                          Stop scanning until the enter key is hit
   * --wait                          Stop scanning until the channel is clear
   * --levelstop=0                   Do not pause to listen for signal
+    * Note the requirement of the equal sign
 
 ### Bookmarks file
 
@@ -83,6 +85,14 @@ Example:
 
 There are other options in the file which can be modified to set them as defaults
 but almost all can be specified on the command line.
+
+### Troubleshooting
+
+  * problem connecting to "127.0.0.1", port 7356: Connection refused at /usr/local/bin/gqrx-scan line 90
+   * Enable Remote Control in GQRX.  As of version 2.3, this option is always disabled on startup so you have to re-enable it each time you launch GQRX.
+   * If you changed the IP or Port which GQRX uses for Remote Control, you must update the script to match
+ * Perl Issues
+   * Check your dependencies
 
 ### Dependencies
 
