@@ -118,7 +118,6 @@ if ($type eq "file")
 				{
 					if ($fileline eq $_)
 					{
-#print "matched channel number\n";
 						$tune = 1;
 						last;
 					}
@@ -127,13 +126,11 @@ if ($type eq "file")
 			# If no channels, and no pattern, tune in
 			elsif ($pattern eq "")
 			{
-#print "no channels and no pattern, tune all\n";
 				$tune = 1;
 			}
 			# If we specified a pattern, match it up
 			elsif  ($pattern && (($name =~ /$pattern/) || ($curfreq =~ /$pattern/)))
 			{
-#print "$pattern matched\n";
 				$tune = 1;
 			}
 
