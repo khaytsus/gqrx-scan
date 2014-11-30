@@ -78,3 +78,7 @@ Perl modules:
   * Time::HiRes
   * Getopt::Long
 
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/khaytsus/gqrx-scan/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
