@@ -6,6 +6,7 @@ Control GRQX to scan frequencies or from channels using a CSV file.
 ### High level functionality
   * Scan a range of frequencies with a specified mode (AM, FM, etc) or a csv file
   * Exclude specific frequencies (birdies, interference, etc)
+  * Exclude specific channel names
   * Scan a range of channels or a list of channels
   * Scan a pattern of channels by name or frequency
   * Resume scan from current frequency or channel
@@ -64,8 +65,10 @@ Control GRQX to scan frequencies or from channels using a CSV file.
     * Wait 2 seconds between frequencies/channels
   * --step 250
     * Step by 250mhz in frequency scanning mode
-  * --exclude 28.401e6,28.410e6
-    * Exclude frequency 28 401 and 28 410
+  * --exclude 28.401e6,28.410e6,KY4
+    * Exclude frequency 28 401 and 28 410 or channel with KY4 in it
+
+
 
 ##### Signal detection options
 
