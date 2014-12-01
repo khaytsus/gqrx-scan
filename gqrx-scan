@@ -422,6 +422,7 @@ sub checkusage
 		if ($start eq "" || $end eq "" || $mode eq "") { usage(); }
 
 		# Require a valid mode
+		$mode = uc($mode);
 		unless (grep(/$mode/, @modes))
 		{
 			print "Mode is invalid:  [$mode]\n\nAvailable modes:  ";
