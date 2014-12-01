@@ -21,11 +21,8 @@ Control GRQX to scan frequencies or from channels using a CSV file.
  * Scan entire CSV file with a pause of 2s between channels
   * gqrx-scan --type file --pause 2
 
- * Scan lines 40 through 60 in the file
-  * gqrx-scan --type file --channels 40-60
-
- * Scan lines 19, 20, and 30 in the file, recording when a signal is detected
-  * gqrx-scan --type file --channels 19,20,30 --record
+ * Scan lines 1, 2, and 40 through 60 in the file, recording when a signal is detected
+  * gqrx-scan --type file --channels 1,2,40-60 --record
 
  * Scan FRS, GMRS, and all 145, 146, and 147 frequency channels
   * gqrx-scan --type file --pattern "FRS|GMR|14[5|6|7]"
@@ -48,10 +45,8 @@ Control GRQX to scan frequencies or from channels using a CSV file.
 
 ##### File mode options
 
-  * --channels 19,20,30
-    * Scan channels 19, 20, and 30
-  * --channels 19-30
-    * Scan channels 19 through 30
+  * --channels 19,20,30,40-50
+    * Scan channels 19, 20, 30, and channels 40 through 50
   * --pattern "FRS|GMR|^145"
     * Scan channels named FRS or GMR or frequencies starting with 145
   * --showall
