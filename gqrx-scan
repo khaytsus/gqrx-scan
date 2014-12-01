@@ -387,18 +387,22 @@ sub checkusage
 		if ($channels && $channel == "") { $channel = $channels; }
 
 		# Convert channel argument to array
-		# Comma saparated list of channels
-		if ($channel =~ /,/)
+		# Comma saparated list of channels or dash separated range
+		my @tmpchannels = split(',',$channel);
+		foreach(@tmpchannels)
 		{
-			@channels = split(',',$channel);
-		}
-
-		if ($channel =~ /-/)
-		{
-			my ($first,$last) = split('-',$channel);
-			for (my $i=$first; $i <= $last; $i++)
-			{
-				push(@channels,$i);
+			# If it has a - in it, it's a range, break it apart
+			if ($_ =~ /-/)
+			{       
+			        my ($first,$last) = split('-',$_);
+				for (my $i=$first; $i <= $last; $i++)
+				{       
+					push(@channels,$i);
+				}
+			}
+			else
+			{               
+				push(@channels,$_);
 			}
 		}
 
