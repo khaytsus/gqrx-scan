@@ -318,7 +318,6 @@ sub tune
 			print " --- Waiting for clear...";
 			if ($record) { print "  (Recording)"; }
 			print "\n";
-			Time::HiRes::sleep($delaytime);
 			my $waitlevel = 0;
 			while ($waitlevel > $delaylevel)
 			{
@@ -327,6 +326,7 @@ sub tune
 				my $prematch;
 				($prematch, $waitlevel) = $t->waitfor(Match => '/-{0,1}\d+\.\d/', Timeout => 5, Errmode => "return"); 
 			}
+			Time::HiRes::sleep($delaytime);
 		}
 		elsif ($stop)
 		{
