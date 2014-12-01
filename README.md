@@ -38,38 +38,55 @@ Control GRQX to scan frequencies or from channels using a CSV file.
 
 ##### Scan mode operations
 
- * --start 28400000                Start at frequency 28.400
- * --end 28410000                  Stop at frequency 28.410
- * --mode USB                      Scan in USB demodulation
+ * --start 28400000
+  * Start at frequency 28.400
+ * --end 28410000
+  * Stop at frequency 28.410
+ * --mode USB
+  * Scan in USB demodulation
 
 ##### File mode options
 
-  * --channels 19,20,30             Scan channels 19, 20, and 30
-  * --channels 19-30                Scan channels 19 through 30
-  * --pattern "FRS|GMR|^145"        Scan channels named FRS or GMR or frequencies starting with 145
-  * --showall                       Show all channels even if skipped
-  * --dumpchannels                  Show all channels, do not tune any
+  * --channels 19,20,30
+    * Scan channels 19, 20, and 30
+  * --channels 19-30
+    * Scan channels 19 through 30
+  * --pattern "FRS|GMR|^145"
+    * Scan channels named FRS or GMR or frequencies starting with 145
+  * --showall
+    * Show all channels even if skipped
+  * --dumpchannels
+    * Show all channels, do not tune any
 
 ##### General scan or file options
 
-  * --pause 2                       Wait 2 seconds between frequencies/channels
-  * --step 250                      Step by 250mhz in frequency scanning mode
-  * --exclude 28.401e6,28.410e6     Exclude frequency 28 401 and 28 410
+  * --pause 2
+    * Wait 2 seconds between frequencies/channels
+  * --step 250
+    * Step by 250mhz in frequency scanning mode
+  * --exclude 28.401e6,28.410e6
+    * Exclude frequency 28 401 and 28 410
 
 ##### Signal detection options
 
-  * --delaylevel=-30                Delay scanning if a signal of -30 or better is heard
+  * --delaylevel=-30
+    * Delay scanning if a signal of -30 or better is heard
     * Note that this argument requires the equal sign
-  * --delaytime 10                  Delay scanning for 10s when a signal is detected
-  * --record                        Record when signal is detected
-  * --stop                          Stop scanning until the enter key is hit
-  * --wait                          Stop scanning until the channel is clear
-  * --levelstop=0                   Do not pause to listen for signal
+  * --delaytime 10
+    * Delay scanning for 10s when a signal is detected
+  * --record
+    * Record when signal is detected
+  * --stop
+    * Stop scanning until the enter key is hit
+  * --wait
+    * Stop scanning until the channel is clear
+  * --levelstop=0
+    * Do not pause to listen for signal
     * Note the requirement of the equal sign
 
 ### Defaults vs Command Line
 
-There are options in the script which can be modified to set them as defaults but almost all options (such as signal detection level, scan pause time, etc) can be specified on the command line.
+There are options in the script which can be modified to set them as defaults but almost all options (such as signal detection level, scan pause time, etc) can be specified on the command line.  To see the script defaults look in the script or the output of the --help command line argument.
 
 ### Bookmarks file
 
