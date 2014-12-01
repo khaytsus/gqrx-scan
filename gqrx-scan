@@ -153,16 +153,13 @@ if ($type eq "file")
 				}
 
 				# Exclude frequencies
-				if (@exclude)
+				foreach(@exclude)
 				{
-					foreach(@exclude)
+					if ($freq eq $_ || $name =~ /$_/)
 					{
-						if ($freq eq $_)
-						{
-							$tune = 0;
-							$excluded = 1;
-							last;
-						}
+						$tune = 0;
+						$excluded = 1;
+						last;
 					}
 				}
 			}
@@ -374,8 +371,13 @@ sub checkusage
 
 		foreach(@tmp)
 		{
-			my $tmp = sprintf("%.10g", $_);
-			push(@exclude,sprintf("%.10g", $_));
+			my $tmp = $_;
+			# If this is a frequency like 28.4e6, convert it to hz
+			if ($tmp =~ /\d+e/)
+			{
+				$tmp = sprintf("%.10g", $_);
+			}
+			push(@exclude,$tmp);
 		}
 	}
 
