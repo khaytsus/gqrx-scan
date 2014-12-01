@@ -40,9 +40,15 @@ my $step = "5000";
 # Available GQRX demodulation modes
 my @modes = ("AM", "FM", "WFM", "WFM_ST", "LSB", "USB", "CW", "CWL", "CWU");
 
-# Other globals to declare
+# Other globals to declare for options
 my ($type, $mode, $start, $end, $channel, $channels, $showall, $pattern, $exclude,
-	$stop, $wait, $record, $dumpchannels, $help, @exclude, @channels);
+	$stop, $wait, $record, $dumpchannels, $help);
+
+# Other globals we use elsewhere
+my (@exclude, @channels, @csv);
+
+# Our maximum channel name width
+my $namewidth = 25;
 
 # Get our command line options
 GetOptions(
@@ -97,11 +103,19 @@ if ($type eq "file")
 	{
 		die "Bookmark file does not exist:  $csv\n";
 	}
-	open(my $csvfile, "<$csv");
+
+	# Retrieve our current frequency
+	$t->print("f");
+	my ($prematch, $tmpfreq) = $t->waitfor(Match => '/\d{7,10}/', Timeout => 5, Errmode => "return");
+	chomp($tmpfreq);
+
+	# If we get a 1 back, skip tuning until we match a frequency
+	my $skiptune = loadcsv($tmpfreq);
 	while (1)
 	{
-		while (my $line = <$csvfile>)
+		foreach(@csv)
 		{
+			my $line = $_;
 			my $tune = 0;
 			my $excluded = 0;
 			chomp($line);
@@ -111,40 +125,44 @@ if ($type eq "file")
 			my $name = join(" ",@name);
 			$name =~ s/[^a-zA-Z0-9 ]//g;
 			my $curfreq = prettyfreq($freq);
-
 			# If we have channels, match them up and tune
-			if (@channels)
+
+			# Don't check if we're skipping tuning
+			unless($skiptune)
 			{
-				foreach(@channels)
+				if (@channels)
 				{
-					if ($fileline eq $_)
+					foreach(@channels)
 					{
-						$tune = 1;
-						last;
+						if ($fileline eq $_)
+						{
+							$tune = 1;
+							last;
+						}
 					}
 				}
-			}
-			# If no channels, and no pattern, tune in
-			elsif ($pattern eq "")
-			{
-				$tune = 1;
-			}
-			# If we specified a pattern, match it up
-			elsif  ($pattern && (($name =~ /$pattern/) || ($curfreq =~ /$pattern/)))
-			{
-				$tune = 1;
-			}
-
-			# Exclude frequencies
-			if (@exclude)
-			{
-				foreach(@exclude)
+				# If no channels, and no pattern, tune in
+				elsif ($pattern eq "")
 				{
-					if ($freq eq $_)
+					$tune = 1;
+				}
+				# If we specified a pattern, match it up
+				elsif  ($pattern && (($name =~ /$pattern/) || ($curfreq =~ /$pattern/)))
+				{
+					$tune = 1;
+				}
+
+				# Exclude frequencies
+				if (@exclude)
+				{
+					foreach(@exclude)
 					{
-						$tune = 0;
-						$excluded = 1;
-						last;
+						if ($freq eq $_)
+						{
+							$tune = 0;
+							$excluded = 1;
+							last;
+						}
 					}
 				}
 			}
@@ -161,17 +179,21 @@ if ($type eq "file")
 			{
 				if ($showall || $excluded || $dumpchannels)
 				{
-					printf('%12s' . " - " . '%20s' . " - [" . '%5s' . "] [" . '%5s' . "] [Line " . '%3s' . "] --- Skipped\n",$curfreq,$name,$mode,"n/a",$fileline);
+					printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . '%5s' . "] [Line " . '%3s' . "] --- Skipped\n",$curfreq,$name,$mode,"n/a",$fileline);
 				}
 			}
 			$fileline++;
+
+			# If our channel frequency matches, disable skipping
+			if ($tmpfreq eq $freq && $skiptune)
+			{
+				$skiptune = 0;
+			}
 		}
 		if ($dumpchannels) { last; }
-		seek $csvfile, 0, 0;
 		$fileline = 0;
 		print "--- Repeating ---\n";
 	}
-	close($csv);
 }
 
 if ($type eq "scan")
@@ -228,6 +250,36 @@ if ($type eq "scan")
 
 exit;
 
+# Load CSV file
+sub loadcsv()
+{
+	my ($freq) = (@_);
+	my $skiptune = 0;
+	my $nametest = 0;
+	unless (-e "$csv")
+	{
+		die "Bookmark file does not exist:  $csv\n";
+	}
+	open(my $csvfile, "<$csv");
+	while (my $line = <$csvfile>)
+	{
+		chomp ($line);
+		push(@csv, $line);
+
+		# Get our max name length so our listing is dynamic
+		my ($hz,$mode,$name) = split(',',$line);
+		if (length($name) > $nametest) { $nametest = length($name); }
+
+		# See if our passed-in frequency is valid to allow resuming
+		if ($hz eq $freq) { $skiptune = 1; }
+	}
+	close(csv);
+	if ($nametest <= $namewidth) { $namewidth = $nametest; }
+	my $csvlines = @csv;
+	print "Loaded $csvlines lines from CSV file\n\n";
+	return $skiptune;
+}
+
 # Tune into frequency
 sub tune
 {
@@ -251,7 +303,7 @@ sub tune
 	}
 	else
 	{
-		printf('%12s' . " - " . '%20s' . " - [" . '%5s' . "] [" . '%5s' . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$fileline);
+		printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . '%5s' . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$fileline);
 	}
 
 	# If the signal level is above the threshold, stay on this frequency for a while
@@ -465,17 +517,18 @@ sub usage
 	print "--dumpchannels			Show all channels, do not tune any\n\n";
 
 	print "General scan or file options:\n\n";
-	print "--pause 2			Wait 2 seconds between frequencies/channels\n";
-	print "--step 250			Step by 250mhz in frequency scanning mode\n";
+	print "--pause 2			Wait 2 seconds between frequencies/channels (default: $pause)\n";
+	print "--step 250			Step by 250mhz in frequency scanning mode (default: $step)\n";
 	print "--exclude 28.401e6,28.410e6	Exclude frequency 28 401 and 28 410\n\n";
 
 	print "Signal detection options:\n\n";
-	print "--delaylevel=-30		Delay scanning if a signal of -30 or better is heard\n";
-	print "--delaytime 10			Delay scanning for 10s when a signal is detected\n";
-	print "--record			Record when signal is detected\n";
-	print "--stop				Stop scanning until the enter key is hit\n";
-	print "--wait				Stop scanning until the channel is clear\n";
-	print "--levelstop=0			Do not pause to listen for signal\n";
+	print "--delaylevel=-30		Delay scanning if a signal of -30 or better is heard (default: $delaylevel)\n";
+	print "--delaytime 10			Delay scanning for 10s when a signal is detected (default: $delaytime)\n";
+	print "--record			Record when signal is detected (default: 0)\n";
+	print "--stop				Stop scanning until the enter key is hit (default: 0)\n";
+	print "--wait				Stop scanning until the channel is clear (default: 0)\n";
+	print "--levelstop=0			Do not pause to listen for signal (default: $levelstop)\n";
 
 	exit;
 }
+
