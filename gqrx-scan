@@ -460,6 +460,9 @@ sub checkusage
 	if ($type eq "file")
 	{
 		# Accept --channels or --channel as argument for channels
+
+		unless ($channel || $channels) { usage($type); }
+
 		if ($channels && $channel == "") { $channel = $channels; }
 
 		# Convert channel argument to array
@@ -499,7 +502,7 @@ sub checkusage
 	}
 	elsif ($type eq "scan")
 	{
-		if ($start eq "" || $end eq "" || $mode eq "") { usage(); }
+		if ($start eq "" || $end eq "" || $mode eq "") { usage($type); }
 
 		# Require a valid mode
 		$mode = uc($mode);
@@ -580,6 +583,8 @@ sub prettyfreq()
 # Sanity check our usage and parameters
 sub usage
 {
+	my ($modetype) = (@_);
+
 	print "$0 - Control GRQX to scan.\n\n";
 
 	print "$0 --type [file scan] --help for mode help on each mode\n\n";
@@ -612,6 +617,20 @@ sub usage
 	print "--stop				Stop scanning until the enter key is hit (default: 0)\n";
 	print "--wait				Stop scanning until the channel is clear (default: 0)\n";
 	print "--levelstop=0			Do not pause to listen for signal (default: $levelstop)\n";
+
+	if ($modetype eq "scan")
+	{
+		print "\n\nMode $modetype detected but missing required parameters\n\n";
+		unless ($start) { print "--start freq required\n"; }
+		unless ($end) { print "--end freq required\n"; }
+		unless ($mode) { print "--mode mode required\n"; }
+	}
+
+	if ($modetype eq "file")
+	{
+		print "\n\nMode $modetype detected but missing required parameters\n\n";
+		unless ($channel || $channels) { print "--channels # required\n"; }
+	}
 
 	exit;
 }
