@@ -100,7 +100,6 @@ if ($monitor) { $levelstop = 0; }
 
 # Initiate our telnet connection
 my $t = new Net::Telnet (Timeout => 2,
-	input_log => 'inlog.txt',
 	port => '7356',
 	);
 
@@ -461,9 +460,9 @@ sub checkusage
 	{
 		# Accept --channels or --channel as argument for channels
 
-		unless ($channel || $channels) { usage($type); }
-
 		if ($channels && $channel == "") { $channel = $channels; }
+
+		unless ($channel || $dumpchannels) { usage($type); }
 
 		# Convert channel argument to array
 		# Comma saparated list of channels or dash separated range
