@@ -19,6 +19,9 @@ use strict;
 # Location of the CSV file to scan
 my $csv = "/opt/gqrx-remote/gqrx-bookmarks.csv";
 
+# Log file
+my $logfile = "/home/wally/baofeng/gqrxscan.log";
+
 # Delay scanning if we hear a signal
 my $levelstop = 1;
 
@@ -67,6 +70,9 @@ my %mostactive;
 # Track how long we've been scanning
 my $timestarted = time;
 
+# Save the argument list to logfile
+my @args = @ARGV;
+
 # Get our command line options
 GetOptions(
 	'type=s' => \$type,
@@ -96,6 +102,8 @@ checkusage();
 
 # Print some information at the beginning of the run
 header();
+
+logfile("Started scanning.  Arguments: " . join(" ", @args) . "\n");
 
 # Sanity check some settings
 
@@ -452,8 +460,32 @@ sub prettyfreq($)
 # Print repeat header with some info
 sub repeatheader
 {
-	printf("--- Scan:  " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Record: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " ---\n",
-		secondstoreadable(time-$timestarted),getactive(),secondstoreadable($recordtime));
+	printf("--- Scan: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Record: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " ---\n",
+		secondstoreadable(time-$timestarted),
+		getactive(),
+		secondstoreadable($recordtime)
+	);
+
+	my $logline = sprintf("Time Scaning: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Time Recording: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " (" . '%s' . ")\n",
+		secondstoreadable(time-$timestarted),
+		getactive(),
+		secondstoreadable($recordtime),
+		($record) ? "Enabled" : "Disabled"
+	);
+	logfile($logline);
+}
+
+# Log to our logfile
+sub logfile($)
+{
+	if (-w $logfile)
+	{
+		my ($logline) = (@_);
+		open(LOGFILE,">>$logfile");
+		my $timestamp = logtimestamp();
+		print LOGFILE $timestamp . " -- " . $logline;
+		close(LOGFILE);
+	}
 }
 
 # Convert seconds to human readable time
@@ -501,6 +533,16 @@ sub getactive
 	return ($freq, $count);
 }
 
+# Get a pretty timestamp for our logfile
+sub logtimestamp
+{
+	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
+	my $nice_timestamp = sprintf('%04d' . "-" . '%02d' . "-" . '%02d' . " " . '%02d' . ":" . '%02d' . ":" . '%02d',
+		$year+1900,$mon+1,$mday,$hour,$min,$sec);
+
+	return $nice_timestamp;
+}
+
 # Make sure we stop recording if we exit
 sub signal_handler
 {
@@ -508,6 +550,7 @@ sub signal_handler
 	print "\n\nDisabling recording and exiting on signal: $!\n";
 	$t->print("LOS");
 	$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
+	logfile("Stopped scanning\n");
 	exit;
 }
 
