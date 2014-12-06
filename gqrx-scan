@@ -58,6 +58,15 @@ my $namewidth = 25;
 # Flag to track if we're recording in monitor mode
 my $recordingmonitor = 0;
 
+# Track how many seconds we've recorded
+my $recordtime = 0;
+
+# Track the most active frequency/channel
+my %mostactive;
+
+# Track how long we've been scanning
+my $timestarted = time;
+
 # Get our command line options
 GetOptions(
 	'type=s' => \$type,
@@ -209,7 +218,7 @@ if ($type eq "file")
 		}
 		else
 		{
-			print "--- Repeating ---\n";
+			repeatheader();
 		}
 	}
 }
@@ -274,7 +283,7 @@ if ($type eq "scan")
 			if ($freq > $end)
 			{
 				$freq = $start;
-				print "--- Repeating ---\n";
+				repeatheader();
 			}
 		}
 	}
@@ -282,40 +291,12 @@ if ($type eq "scan")
 
 exit;
 
-# Load CSV file
-sub loadcsv()
-{
-	my ($freq) = (@_);
-	my $skiptune = 0;
-	my $nametest = 0;
-	unless (-e "$csv")
-	{
-		die "Bookmark file does not exist:  $csv\n";
-	}
-	open(my $csvfile, "<$csv");
-	while (my $line = <$csvfile>)
-	{
-		chomp ($line);
-		push(@csv, $line);
-
-		# Get our max name length so our listing is dynamic
-		my ($hz,$mode,$name) = split(',',$line);
-		if (length($name) > $nametest) { $nametest = length($name); }
-
-		# See if our passed-in frequency is valid to allow resuming
-		if ($hz eq $freq) { $skiptune = 1; }
-	}
-	close(csv);
-	if ($nametest <= $namewidth) { $namewidth = $nametest; }
-	my $csvlines = @csv;
-	print "Loaded $csvlines lines from CSV file\n\n";
-	return $skiptune;
-}
-
 # Tune into frequency
 sub tune
 {
 	my ($freq, $mode, $curfreq, $name, $fileline, $startfreq, $endfreq, $monitoring) = (@_);
+
+	my $recordstart = 0;
 	unless ($monitoring)
 	{
 		$t->print("F $freq");
@@ -344,10 +325,12 @@ sub tune
 	# If we're in monitor mode and want to record, do it here
 	if ($level ne "" && $level > $delaylevel && $monitoring && $record)
 	{
+		addactive($freq);
 		if ($recordingmonitor eq 0)
 		{
 			print " (Recording)";
 			$recordingmonitor = 1;
+			$recordstart = time;
 			$t->print("AOS");
 			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
 		}
@@ -362,6 +345,7 @@ sub tune
 		{
 			$recordingmonitor = 0;
 			print "\e[K";
+			$recordtime = $recordtime + time - $recordstart;
 			$t->print("LOS");
 			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
 		}
@@ -370,9 +354,11 @@ sub tune
 	# If the signal level is above the threshold, stay on this frequency for a while
 	if ($levelstop && $level ne "" && $level > $delaylevel && $monitoring eq 0)
 	{
+		addactive($freq);
 		# Start recording
 		if ($record)
 		{
+			$recordstart = time;
 			$t->print("AOS");
 			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
 		}
@@ -409,6 +395,7 @@ sub tune
 		# Stop recording
 		if ($record)
 		{
+			$recordtime = $recordtime + time - $recordstart;
 			$t->print("LOS");
 			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
 		}
@@ -419,6 +406,99 @@ sub tune
 		if ($monitor) { print "\r"; }
 		else { print "\n"; }
 	}
+}
+
+# Load CSV file
+sub loadcsv($)
+{
+	my ($freq) = (@_);
+	my $skiptune = 0;
+	my $nametest = 0;
+	unless (-e "$csv")
+	{
+		die "Bookmark file does not exist:  $csv\n";
+	}
+	open(my $csvfile, "<$csv");
+	while (my $line = <$csvfile>)
+	{
+		chomp ($line);
+		push(@csv, $line);
+
+		# Get our max name length so our listing is dynamic
+		my ($hz,$mode,$name) = split(',',$line);
+		if (length($name) > $nametest) { $nametest = length($name); }
+
+		# See if our passed-in frequency is valid to allow resuming
+		if ($hz eq $freq) { $skiptune = 1; }
+	}
+	close(csv);
+	if ($nametest <= $namewidth) { $namewidth = $nametest; }
+	my $csvlines = @csv;
+	print "Loaded $csvlines lines from CSV file\n\n";
+	return $skiptune;
+}
+
+# Return back ##.### ### format readable frequency string
+sub prettyfreq($)
+{
+	my ($freq) = (@_);
+	chomp($freq);
+	my $subfreq = substr($freq, -3);
+	my $mainfreq = substr($freq, 0, length($freq)-3);
+	$mainfreq = sprintf("%.3f", $mainfreq / 1000);
+	return "$mainfreq $subfreq";
+}
+
+# Print repeat header with some info
+sub repeatheader
+{
+	printf("--- Scan:  " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Record: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " ---\n",
+		secondstoreadable(time-$timestarted),getactive(),secondstoreadable($recordtime));
+}
+
+# Convert seconds to human readable time
+sub secondstoreadable($)
+{
+	my ($seconds) = (@_);
+	my $days = int($seconds/(24*60*60));
+	my $hours = ($seconds/(60*60))%24;
+	my $mins = ($seconds/60)%60;
+	my $secs = $seconds%60;
+	return ($days, $hours, $mins, $secs);
+}
+
+# Add channel to active
+sub addactive($)
+{
+	my ($freq) = (@_);
+	my $found = 0;
+	foreach my $key (keys %mostactive)
+	{
+		if ($freq eq $key)
+		{
+			$mostactive{$key}++;
+			$found++;
+		}
+	}
+	unless ($found) { $mostactive{$freq} = 1; }
+}
+
+# Retrieve the most active frequency
+sub getactive
+{
+	my $freq = "na";
+	my $count = 0;
+	foreach my $key (keys %mostactive)
+	{
+		if ($mostactive{$key} > $count)
+		{
+		 	$freq = $key;
+			$count = $mostactive{$key};
+		}
+
+	}
+	unless ($freq eq "na") { $freq = prettyfreq($freq); }
+	return ($freq, $count);
 }
 
 # Make sure we stop recording if we exit
@@ -566,17 +646,6 @@ sub header
 
 	print "Channel/Frequency pause time:  " . $pause . "s\n";
 	print "Delaylevel: [$delaylevel]  Delaytime: [$delaytime]\n\n";
-}
-
-# Return back ##.### ### format readable frequency string
-sub prettyfreq()
-{
-	my ($freq) = (@_);
-	chomp($freq);
-	my $subfreq = substr($freq, -3);
-	my $mainfreq = substr($freq, 0, length($freq)-3);
-	$mainfreq = sprintf("%.3f", $mainfreq / 1000);
-	return "$mainfreq $subfreq";
 }
 
 # Sanity check our usage and parameters
