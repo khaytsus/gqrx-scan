@@ -99,6 +99,10 @@ Example:
 446000000,FM,440 Simplex<br>
 144200000,LSB,2m SSB Calling<br>
 
+### Pause Script
+
+With this script, you can pause the scanning using a hotkey.  How you assign that hotkey is up to your particular desktop environment.  The first time ran it creates a file that GQRX Scan uses to pause, the second time it removes it.  GQRX Scan removes this file on startup in case it's left over.
+
 ### Troubleshooting
 
   * problem connecting to "127.0.0.1", port 7356: Connection refused at /usr/local/bin/gqrx-scan line 90

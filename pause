@@ -1,0 +1,18 @@
+#!/usr/bin/perl
+
+# A script that just creates a file which pauses GQRX Scan.  Assign to a hotkey
+# using your desktop to pause and resume scanning.
+
+# Path to file
+my $home = $ENV{"HOME"};
+my $file = "$home/.gqrx-pause.txt";
+
+if (-e $file)
+{
+	unlink $file;
+}
+else
+{
+	open(FILE, ">$file");
+	print FILE localtime (time) . "\n";
+}

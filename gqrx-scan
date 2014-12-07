@@ -19,6 +19,10 @@ use strict;
 # Location of the CSV file to scan
 my $csv = "/opt/gqrx-remote/gqrx-bookmarks.csv";
 
+# Location of file which will pause scanning
+my $home = $ENV{"HOME"};
+my $pausefile = "$home/.gqrx-pause.txt";        
+
 # Log file
 my $logfile = "/home/wally/baofeng/gqrxscan.log";
 
@@ -104,6 +108,9 @@ checkusage();
 header();
 
 logfile("Started scanning.  Arguments: " . join(" ", @args) . "\n");
+
+# Remove our pause file if we're starting with it existing
+if (-e $pausefile) { unlink $pausefile; }
 
 # Sanity check some settings
 
@@ -217,6 +224,13 @@ if ($type eq "file")
 			{
 				$skiptune = 0;
 			}
+
+			while (-e $pausefile)
+			{
+				print "\rWaiting to resume...";
+				Time::HiRes::sleep($levelwait);
+			}
+			print "\r";
 		}
 		if ($dumpchannels) { last; }
 		$fileline = 0;
@@ -285,6 +299,12 @@ if ($type eq "scan")
 			$monitoring = 1;
 		}
 
+		while (-e $pausefile)
+		{
+			print "\rWaiting to resume...";
+			Time::HiRes::sleep($levelwait);
+		}
+
 		unless ($monitoring)
 		{
 			$freq = $freq + $step;
@@ -294,6 +314,9 @@ if ($type eq "scan")
 				repeatheader();
 			}
 		}
+
+		print "\r";
+
 	}
 }
 
