@@ -729,7 +729,8 @@ sub usage
 	print "Scan mode operations:\n\n";
 	print "--start 28400000		Start at frequency 28.400\n";
 	print "--end 28410000 			Stop at frequency 28.410\n";
-	print "--mode USB			Scan in USB demodulation\n\n";
+	print "--mode USB			Scan in USB demodulation\n";
+	print "--step 250			Step by 250mhz in frequency scanning mode (default: $step)\n\n";
 
 	print "File mode options:\n\n";
 	print "--channels 19,20,30		Scan channels 19, 20, and 30\n";
@@ -740,7 +741,6 @@ sub usage
 
 	print "General scan or file options:\n\n";
 	print "--pause 2			Wait 2 seconds between frequencies/channels (default: $pause)\n";
-	print "--step 250			Step by 250mhz in frequency scanning mode (default: $step)\n";
 	print "--exclude 28.401e6,28.410e6	Exclude frequency 28 401 and 28 410\n";
 	print "--monitor			Monitor a single frequency or channel\n\n";
 

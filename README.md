@@ -42,6 +42,8 @@ Control GRQX to scan frequencies or from channels using a CSV file.
   * Stop at frequency 28.410
  * --mode USB
   * Scan in USB demodulation
+  * --step 250
+    * Step by 250mhz in frequency scanning mode
 
 ##### File mode options
 
@@ -58,8 +60,6 @@ Control GRQX to scan frequencies or from channels using a CSV file.
 
   * --pause 2
     * Wait 2 seconds between frequencies/channels
-  * --step 250
-    * Step by 250mhz in frequency scanning mode
   * --exclude 28.401e6,28.410e6,KY4
     * Exclude frequency 28 401 and 28 410 or channel with KY4 in it
 
