@@ -45,7 +45,7 @@ my $delaytime = "5";
 my $pause = 0.5;
 
 # Hz to increment by in frequency scan mode
-my $step = "5000";
+my $step = "1000";
 
 ### No need to touch below here
 
@@ -296,7 +296,7 @@ if ($type eq "scan")
 		}
 		else
 		{
-			print "Skipped $freq\n";
+			printf('%12s' . " Skipped\n", prettyfreq($freq));
 		}
 
 		if ($monitor)
