@@ -602,6 +602,8 @@ sub checkusage
 		}
 	}
 
+	if ($delaylevel > 0) { usage("delaylevel"); }
+
 	if ($type eq "file")
 	{
 		# Accept --channels or --channel as argument for channels
@@ -731,7 +733,7 @@ sub header
 # Sanity check our usage and parameters
 sub usage
 {
-	my ($modetype) = (@_);
+	my ($text) = (@_);
 
 	print "$0 - Control GRQX to scan.\n\n";
 
@@ -766,19 +768,24 @@ sub usage
 	print "--wait				Stop scanning until the channel is clear (default: 0)\n";
 	print "--levelstop=0			Do not pause to listen for signal (default: $levelstop)\n";
 
-	if ($modetype eq "scan")
+	if ($text eq "scan")
 	{
-		print "\n\nMode $modetype detected but missing required parameters\n\n";
+		print "\n\nMode $text detected but missing required parameters\n\n";
 		unless ($start) { print "--start freq required\n"; }
 		unless ($end) { print "--end freq required\n"; }
 		unless ($mode) { print "--mode mode required\n"; }
 	}
 
-	if ($modetype eq "file")
+	if ($text eq "file")
 	{
-		print "\n\nMode $modetype detected but missing required parameters\n\n";
-		unless ($channel || $channels) { print "--channels # required\n"; }
+		print "\n\nMode $text detected but missing required parameters\n\n";
+		unless ($channel || $channels || $pattern) { print "--channels or --pattern required\n"; }
 		if ($channel && $pattern) { print "--channel and --pattern are exclusive options\n"; }
+	}
+
+	if ($text eq "delaylevel")
+	{
+		print "\n\n--delaylevel must be less than or equal to 0\n\n";
 	}
 
 	exit;
