@@ -155,6 +155,11 @@ if ($type eq "file")
 			my $excluded = 0;
 			chomp($line);
 			my ($freq,$mode,@name) = split(',',$line);
+			if ($freq eq "" || $mode eq "")
+			{
+				print "Invalid bookmark line: [$line]\n";
+				sleep 1;
+			}
 			$freq =~ s/[^0-9]//g;
 			$mode =~ s/[^A-Z]//g;
 			my $name = join(" ",@name);
@@ -608,11 +613,11 @@ sub checkusage
 	{
 		# Accept --channels or --channel as argument for channels
 
-		if ($channels && $channel == "") { $channel = $channels; }
+		if ($channels ne "" && $channel == "") { $channel = $channels; }
 
-		unless ($channel || $dumpchannels || $pattern) { usage($type); }
+		unless ($channel ne "" || $dumpchannels || $pattern) { usage($type); }
 
-		if ($channel && $pattern) { usage($type); }
+		if ($channel ne "" && $pattern) { usage($type); }
 
 
 		# If monitor mode, we're only monitoring one channel
@@ -779,7 +784,7 @@ sub usage
 	if ($text eq "file")
 	{
 		print "\n\nMode $text detected but missing required parameters\n\n";
-		unless ($channel || $channels || $pattern) { print "--channels or --pattern required\n"; }
+		unless ($channel ne "" || $channels ne "" || $pattern) { print "--channels or --pattern required\n"; }
 		if ($channel && $pattern) { print "--channel and --pattern are exclusive options\n"; }
 	}
 
