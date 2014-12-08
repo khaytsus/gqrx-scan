@@ -612,6 +612,18 @@ sub checkusage
 
 		if ($channel && $pattern) { usage($type); }
 
+
+		# If monitor mode, we're only monitoring one channel
+		if ($monitor)
+		{
+			my @foo;
+			($channel,@foo) = split(',',$channel);
+			if ($channel =~ /-/)
+			{
+				($channel,@foo) = split('-',$channel);
+			}
+		}
+
 		# Convert channel argument to array
 		# Comma saparated list of channels or dash separated range
 		my @tmpchannels = split(',',$channel);
