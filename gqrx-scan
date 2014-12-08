@@ -608,7 +608,9 @@ sub checkusage
 
 		if ($channels && $channel == "") { $channel = $channels; }
 
-		unless ($channel || $dumpchannels) { usage($type); }
+		unless ($channel || $dumpchannels || $pattern) { usage($type); }
+
+		if ($channel && $pattern) { usage($type); }
 
 		# Convert channel argument to array
 		# Comma saparated list of channels or dash separated range
@@ -764,6 +766,7 @@ sub usage
 	{
 		print "\n\nMode $modetype detected but missing required parameters\n\n";
 		unless ($channel || $channels) { print "--channels # required\n"; }
+		if ($channel && $pattern) { print "--channel and --pattern are exclusive options\n"; }
 	}
 
 	exit;
