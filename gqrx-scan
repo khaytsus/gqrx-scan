@@ -16,6 +16,10 @@ use strict;
 
 # Some defaults, all of these can be over-ridden by options except $levelwait
 
+# GQRX IP and Port
+my $gqrxip = "127.0.0.1";
+my $gqrxport = "7356";
+
 # Location of the CSV file to scan
 my $csv = "/opt/gqrx-remote/gqrx-bookmarks.csv";
 
@@ -124,10 +128,10 @@ if ($monitor) { $levelstop = 0; }
 
 # Initiate our telnet connection
 my $t = new Net::Telnet (Timeout => 2,
-	port => '7356',
+	port => $gqrxport,
 	);
 
-$t->open('127.0.0.1');
+$t->open($gqrxip);
 
 if ($type eq "file")
 {
