@@ -33,6 +33,9 @@ Control GRQX to scan frequencies or from channels using a CSV file.
   * 28.400e6 is valid too and might be easier to type/read
   * Available modes: AM FM WFM WFM_ST LSB USB CW CWL CWU
 
+ * Monitor a single channel, recording when the level is better than -50, waiting for 5 seconds before ending recording after signal drops
+  * gqrx-scan --type file --channels 20 --delaylevel=-50 --delaytime 5 --record --monitor
+
 ### Command Line Arguments
 
 ##### Scan mode operations
