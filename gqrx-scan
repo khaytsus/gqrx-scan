@@ -69,6 +69,10 @@ my $namewidth = 25;
 # Flag to track if we're recording in monitor mode
 my $recordingmonitor = 0;
 
+# Timeout variables so we can record in monitor mode and not create new files needlessly
+my $monitortime = 0;
+my $monitortimeout = 0;
+
 # Track how many seconds we've recorded
 my $recordtime = 0;
 
@@ -366,6 +370,7 @@ sub tune
 	if ($level ne "" && $level > $delaylevel && $monitoring && $record)
 	{
 		addactive($freq);
+		$monitortime = time;
 		if ($recordingmonitor eq 0)
 		{
 			print " (Recording)";
@@ -383,11 +388,14 @@ sub tune
 	{
 		if ($recordingmonitor)
 		{
-			$recordingmonitor = 0;
-			print "\e[K";
-			$recordtime = $recordtime + time - $recordstart;
-			$t->print("LOS");
-			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
+			if ((time - $monitortime) > $delaytime)
+			{
+				$recordingmonitor = 0;
+				print "\e[K";
+				$recordtime = $recordtime + time - $recordstart;
+				$t->print("LOS");
+				$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
+			}
 		}
 	}
 
