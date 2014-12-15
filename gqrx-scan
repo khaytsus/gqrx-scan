@@ -27,8 +27,10 @@ my $csv = "/opt/gqrx-remote/gqrx-bookmarks.csv";
 my $home = $ENV{"HOME"};
 my $pausefile = "$home/.gqrx-pause.txt";        
 
-# Log file
-my $logfile = "/home/wally/baofeng/gqrxscan.log";
+# Log file components
+my $logpath = "/home/wally/baofeng/";
+my $logfilename = "gqrxscan.log";
+my $logfile = $logpath . $logfilename;
 
 # Delay scanning if we hear a signal
 my $levelstop = 1;
@@ -111,6 +113,9 @@ GetOptions(
 
 # Check sane usage for different modes
 checkusage();
+
+# Test our log path
+testlog();
 
 # Print some information at the beginning of the run
 header();
@@ -374,6 +379,7 @@ sub tune
 		if ($recordingmonitor eq 0)
 		{
 			print " (Recording)";
+			logfile("Recording Started: " . prettyfreq($freq) . "\n");
 			$recordingmonitor = 1;
 			$recordstart = time;
 			$t->print("AOS");
@@ -391,6 +397,7 @@ sub tune
 			if ((time - $monitortime) > $delaytime)
 			{
 				$recordingmonitor = 0;
+				logfile("Recording Ended: " . prettyfreq($freq) . "\n");
 				print "\e[K";
 				$recordtime = $recordtime + time - $recordstart;
 				$t->print("LOS");
@@ -407,6 +414,7 @@ sub tune
 		if ($record)
 		{
 			$recordstart = time;
+			logfile("Recording Started: " . prettyfreq($freq) . "\n");
 			$t->print("AOS");
 			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
 		}
@@ -444,6 +452,7 @@ sub tune
 		if ($record)
 		{
 			$recordtime = $recordtime + time - $recordstart;
+			logfile("Recording Ended: " . prettyfreq($freq) . "\n");
 			$t->print("LOS");
 			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
 		}
@@ -515,17 +524,26 @@ sub repeatheader
 	logfile($logline);
 }
 
+# Test our logging path and update to tmp if we have to
+sub testlog
+{
+
+	open TEST, ">>$logfile" or do
+	{
+		my $oldlogfile = $logfile;
+		$logfile = "/tmp/" . $logfilename;
+		print "Can't write to $oldlogfile, logging to " . $logfile . "\n";
+	}
+}
+
 # Log to our logfile
 sub logfile($)
 {
-	if (-w $logfile)
-	{
-		my ($logline) = (@_);
-		open(LOGFILE,">>$logfile");
-		my $timestamp = logtimestamp();
-		print LOGFILE $timestamp . " -- " . $logline;
-		close(LOGFILE);
-	}
+	my ($logline) = (@_);
+	open(LOGFILE,">>$logfile");
+	my $timestamp = logtimestamp();
+	print LOGFILE $timestamp . " -- " . $logline;
+	close(LOGFILE);
 }
 
 # Convert seconds to human readable time
