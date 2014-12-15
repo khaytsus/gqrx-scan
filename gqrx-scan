@@ -32,6 +32,10 @@ my $logpath = "/home/wally/baofeng/";
 my $logfilename = "gqrxscan.log";
 my $logfile = $logpath . $logfilename;
 
+# How long in seconds do we wait before printing the summary to the log file
+my $logheader = 600;
+my $lastlogheader = 0;
+
 # Delay scanning if we hear a signal
 my $levelstop = 1;
 
@@ -521,7 +525,11 @@ sub repeatheader
 		secondstoreadable($recordtime),
 		($record) ? "Enabled" : "Disabled"
 	);
-	logfile($logline);
+	if ((time - $lastlogheader) > $logheader)
+	{
+		logfile($logline);
+		$lastlogheader = time;
+	}
 }
 
 # Test our logging path and update to tmp if we have to
