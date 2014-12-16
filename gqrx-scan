@@ -14,7 +14,7 @@ use sigtrap qw/handler signal_handler normal-signals/;
 # Be strict in our parsing
 use strict;
 
-# Some defaults, all of these can be over-ridden by options except $levelwait
+# Some static defaults for some settings we don't have command line flags for
 
 # GQRX IP and Port
 my $gqrxip = "127.0.0.1";
@@ -31,21 +31,24 @@ my $pausefile = "$home/.gqrx-pause.txt";
 my $logpath = "/home/wally/baofeng/";
 my $logfilename = "gqrxscan.log";
 my $logfile = $logpath . $logfilename;
+my $tmplogpath = "/tmp/";
+
+# Time delay before checking signal level after changing channels
+# Increase this if you find it going to the next channel then waiting
+# when a signal is detected, it seems to take a while to detect
+my $levelwait = ".3";
 
 # How long in seconds do we wait before printing the summary to the log file
 my $logheader = 600;
 my $lastlogheader = 0;
+
+# Defaults to some command-line options, all of these can be over-ridden
 
 # Delay scanning if we hear a signal
 my $levelstop = 1;
 
 # Default Level that will cause a scanning delay
 my $delaylevel = "-40";
-
-# Time delay before checking signal level after changing channels
-# Increase this if you find it going to the next channel then waiting
-# when a signal is detected, it seems to take a while to detect
-my $levelwait = ".3";
 
 # Time to wait if signal is detected
 my $delaytime = "5";
@@ -539,7 +542,7 @@ sub testlog
 	open TEST, ">>$logfile" or do
 	{
 		my $oldlogfile = $logfile;
-		$logfile = "/tmp/" . $logfilename;
+		$logfile = $tmplogpath . $logfilename;
 		print "Can't write to $oldlogfile, logging to " . $logfile . "\n";
 	}
 }
