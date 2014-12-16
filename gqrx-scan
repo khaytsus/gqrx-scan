@@ -178,7 +178,7 @@ if ($type eq "file")
 				sleep 1;
 			}
 			$freq =~ s/[^0-9]//g;
-			$mode =~ s/[^A-Z]//g;
+			$mode =~ s/[^A-Z_]//g;
 			my $name = join(" ",@name);
 			$name =~ s/[^a-zA-Z0-9 ]//g;
 			my $curfreq = prettyfreq($freq);
