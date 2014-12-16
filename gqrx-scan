@@ -154,6 +154,7 @@ if ($type eq "file")
 	$| = 1;
 	my $fileline = 0;
 	my $monitoring = 0;
+	my $tuned = 0;
 	unless (-e "$csv")
 	{
 		die "Bookmark file does not exist:  $csv\n";
@@ -233,6 +234,7 @@ if ($type eq "file")
 			# If we matched, tune in
 			if ($tune)
 			{
+				$tuned = 1;
 				tune($freq, $mode, $curfreq, $name, $fileline, "", "", $monitoring);
 			}
 			else
@@ -259,6 +261,13 @@ if ($type eq "file")
 		}
 		if ($dumpchannels) { last; }
 		$fileline = 0;
+
+		unless ($tuned)
+		{
+			print "No channels tuned; invalid channel list or pattern?\n";
+			sleep 1;
+		}
+
 		if ($monitor)
 		{
 			$monitoring = 1;
@@ -369,6 +378,12 @@ sub tune
 		($prematch, $level) = $t->waitfor(Match => '/-{0,1}\d+\.\d/', Timeout => 5, Errmode => "return"); 
 		chomp($level);
 	}
+
+	if ($level <= -200)
+	{
+		print "\nSignal Level at -200, GQRX may not be running\n";
+	}
+
 	if ($type eq "scan")
 	{
 		printf('%12s' . " --- [" . '%12s' . " - " . '%12s' . "] [" . '%s' . "] [" . '%s' . "kHz] [" . '%5s' . "]",$curfreq,$startfreq,$endfreq,$level,$step/1000,$mode);
