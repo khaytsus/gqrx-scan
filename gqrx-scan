@@ -155,6 +155,7 @@ if ($type eq "file")
 	my $fileline = 0;
 	my $monitoring = 0;
 	my $tuned = 0;
+	my $runs = 0;
 	unless (-e "$csv")
 	{
 		die "Bookmark file does not exist:  $csv\n";
@@ -261,8 +262,9 @@ if ($type eq "file")
 		}
 		if ($dumpchannels) { last; }
 		$fileline = 0;
+		$runs++;
 
-		unless ($tuned)
+		if ($tuned == 0 && $runs > 1)
 		{
 			print "No channels tuned; invalid channel list or pattern?\n";
 			sleep 1;
