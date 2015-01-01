@@ -7,6 +7,7 @@
 use Net::Telnet;
 use Time::HiRes;
 use Getopt::Long;
+use Term::ANSIColor qw(:constants);
 
 # Handle all signals
 use sigtrap qw/handler signal_handler normal-signals/;
@@ -67,7 +68,7 @@ my @modes = ("AM", "FM", "WFM", "WFM_ST", "LSB", "USB", "CW", "CWL", "CWU");
 
 # Other globals to declare for options
 my ($type, $mode, $start, $end, $channel, $channels, $showall, $pattern, $exclude,
-	$stop, $wait, $record, $monitor, $dumpchannels, $help);
+	$stop, $wait, $record, $monitor, $dumpchannels, $coloroutput, $light, $help);
 
 # Other globals we use elsewhere
 my (@exclude, @channels, @csv, %bestsignal);
@@ -90,6 +91,9 @@ my %mostactive;
 
 # Track how long we've been scanning
 my $timestarted = time;
+
+# Initialize the bold variable to use later
+my $bold;
 
 # Save the argument list to logfile
 my @args = @ARGV;
@@ -115,6 +119,8 @@ GetOptions(
 	'record' => \$record,
 	'monitor' => \$monitor,
 	'dumpchannels' => \$dumpchannels,
+	'coloroutput' => \$coloroutput,
+	'light' => \$light,
 	'help' => \$help
 	);
 
@@ -141,6 +147,18 @@ if ($pause < $levelwait ) { $pause = $levelwait; }
 if ("$step" < 100) { $step = "100"; }
 
 if ($monitor) { $levelstop = 0; }
+
+print "Coloroutput: $coloroutput\n";
+
+# If we're colorizing, set our bold default
+if ($coloroutput)
+{
+	# Don't bold on a light terminal theme
+	unless ($light) { $bold = BOLD; }
+}
+
+# Disable bold output if we're on a light themed terminal
+
 
 # Initiate our telnet connection
 my $t = new Net::Telnet (Timeout => 2,
@@ -363,6 +381,8 @@ sub tune
 {
 	my ($freq, $mode, $curfreq, $name, $fileline, $startfreq, $endfreq, $monitoring) = (@_);
 
+	my $bestlevel = 0;
+
 	my $recordstart = 0;
 	unless ($monitoring)
 	{
@@ -391,6 +411,7 @@ sub tune
 	{
 		if ($bestsignal{$freq} < $level)
 		{
+			$bestlevel = 1;
 			$bestsignal{$freq} = $level;
 		}
 	}
@@ -399,13 +420,35 @@ sub tune
 		$bestsignal{$freq} = $level;
 	}
 
-	if ($type eq "scan")
+	if ($coloroutput)
 	{
-		printf('%12s' . " --- [" . '%12s' . " - " . '%12s' . "] [" . '%s' . " / " . '%s' . "] [" . '%s' . "kHz] [" . '%5s' . "]",$curfreq,$startfreq,$endfreq,$level,$bestsignal{$freq},$step/1000,$mode);
+		# Define our colors in shorthand here
+		my $l = $bold . GREEN;
+		my $bl = $bold . GREEN;
+		my $r = RESET;
+
+		# If we're seeing a stronger signal, highlight it
+		if ($bestlevel) { $l = $bl = $bold . RED; }
+
+		if ($type eq "scan")
+		{
+			printf('%12s' . " --- [" . '%12s' . " - " . '%12s' . "] [" . $l . '%s' . $r . " / " . $bl . '%s' . $r . "] [" . '%s' . "kHz] [" . '%5s' . "]",$curfreq,$startfreq,$endfreq,$level,$bestsignal{$freq},$step/1000,$mode);
+		}
+		else
+		{
+			printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . $l . '%s' . $r . " / " . $bl . '%s' . $r . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$bestsignal{$freq},$fileline);
+		}
 	}
 	else
 	{
-		printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . '%s' . " / " . '%s' . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$bestsignal{$freq},$fileline);
+		if ($type eq "scan")
+		{
+			printf('%12s' . " --- [" . '%12s' . " - " . '%12s' . "] [" . '%s' . " / " . '%s' . "] [" . '%s' . "kHz] [" . '%5s' . "]",$curfreq,$startfreq,$endfreq,$level,$bestsignal{$freq},$step/1000,$mode);
+		}
+		else
+		{
+			printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . '%s' . " / " . '%s' . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$bestsignal{$freq},$fileline);
+		}
 	}
 
 	# If we're in monitor mode and want to record, do it here
@@ -546,11 +589,28 @@ sub prettyfreq($)
 # Print repeat header with some info
 sub repeatheader
 {
-	printf("--- Scan: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Record: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " ---\n",
-		secondstoreadable(time-$timestarted),
-		getactive(),
-		secondstoreadable($recordtime)
-	);
+	if ($coloroutput)
+	{
+		# Define our colors in shorthand here
+		my $s = $bold . GREEN;
+		my $a = $bold . CYAN;
+		my $rc = $bold . MAGENTA;
+		my $r = RESET;
+
+		printf("--- Scan: " . $s . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " - Most Active: " . $a . '%s' . $r . " (" . '%s' . ") - Record: " . $rc . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " ---\n",
+			secondstoreadable(time-$timestarted),
+			getactive(),
+			secondstoreadable($recordtime)
+		);
+	}
+	else
+	{
+		printf("--- Scan: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Record: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " ---\n",
+			secondstoreadable(time-$timestarted),
+			getactive(),
+			secondstoreadable($recordtime)
+		);
+	}
 
 	my $logline = sprintf("Time Scaning: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Time Recording: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " (" . '%s' . ")\n",
 		secondstoreadable(time-$timestarted),
@@ -842,7 +902,11 @@ sub usage
 	print "--record			Record when signal is detected (default: 0)\n";
 	print "--stop				Stop scanning until the enter key is hit (default: 0)\n";
 	print "--wait				Stop scanning until the channel is clear (default: 0)\n";
-	print "--levelstop=0			Do not pause to listen for signal (default: $levelstop)\n";
+	print "--levelstop=0			Do not pause to listen for signal (default: $levelstop)\n\n";
+
+	print "Colorizing Options:\n\n";
+	print "--coloroutput		Colorize the output (default: $coloroutput)\n";
+	print "--light			Use darker colors for a light theme terminal (default: 0)\n";
 
 	if ($text eq "scan")
 	{

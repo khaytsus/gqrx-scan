@@ -11,6 +11,7 @@ Control GRQX to scan frequencies or from channels using a CSV file.
   * Scan a range of channels or a list of channels
   * Scan a pattern of channels by name or frequency
   * Resume scan from current frequency or channel
+  * Colorize output
   
 ### Signal Detection
   * Pause scanning when a signal level threshold is met
