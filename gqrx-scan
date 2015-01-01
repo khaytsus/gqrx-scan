@@ -70,7 +70,7 @@ my ($type, $mode, $start, $end, $channel, $channels, $showall, $pattern, $exclud
 	$stop, $wait, $record, $monitor, $dumpchannels, $help);
 
 # Other globals we use elsewhere
-my (@exclude, @channels, @csv);
+my (@exclude, @channels, @csv, %bestsignal);
 
 # Our maximum channel name width
 my $namewidth = 25;
@@ -386,13 +386,26 @@ sub tune
 		print "\nSignal Level at -200, GQRX may not be running\n";
 	}
 
-	if ($type eq "scan")
+	# Store the best signal we've seen for this frequency
+	if (exists $bestsignal{$freq})
 	{
-		printf('%12s' . " --- [" . '%12s' . " - " . '%12s' . "] [" . '%s' . "] [" . '%s' . "kHz] [" . '%5s' . "]",$curfreq,$startfreq,$endfreq,$level,$step/1000,$mode);
+		if ($bestsignal{$freq} < $level)
+		{
+			$bestsignal{$freq} = $level;
+		}
 	}
 	else
 	{
-		printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . '%5s' . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$fileline);
+		$bestsignal{$freq} = $level;
+	}
+
+	if ($type eq "scan")
+	{
+		printf('%12s' . " --- [" . '%12s' . " - " . '%12s' . "] [" . '%s' . " / " . '%s' . "] [" . '%s' . "kHz] [" . '%5s' . "]",$curfreq,$startfreq,$endfreq,$level,$bestsignal{$freq},$step/1000,$mode);
+	}
+	else
+	{
+		printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . '%s' . " / " . '%s' . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$bestsignal{$freq},$fileline);
 	}
 
 	# If we're in monitor mode and want to record, do it here
