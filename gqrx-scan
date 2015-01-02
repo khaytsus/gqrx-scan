@@ -7,7 +7,14 @@
 use Net::Telnet;
 use Time::HiRes;
 use Getopt::Long;
-use Term::ANSIColor qw(:constants);
+
+# Check to see if we have the Term::ANSIColor module so it's not a hard requirement
+my $ansi = eval
+{
+	require Term::ANSIColor;
+	Term::ANSIColor->import(':constants');
+	1;
+};
 
 # Handle all signals
 use sigtrap qw/handler signal_handler normal-signals/;
@@ -92,8 +99,8 @@ my %mostactive;
 # Track how long we've been scanning
 my $timestarted = time;
 
-# Initialize the bold variable to use later
-my $bold;
+# Initialize the color variables to use later, but shorthand to make our printf's reasonable
+my ($r, $c_r, $c_g, $c_c, $c_m, $c_b, $c_y);
 
 # Save the argument list to logfile
 my @args = @ARGV;
@@ -149,10 +156,29 @@ if ("$step" < 100) { $step = "100"; }
 if ($monitor) { $levelstop = 0; }
 
 # If we're colorizing, set our bold default
-if ($coloroutput)
+if ($coloroutput && $ansi)
 {
-	# Don't bold on a light terminal theme
-	unless ($light) { $bold = BOLD; }
+	$r = RESET();
+
+	# Don't use bright colors on a light terminal theme
+	if ($light)
+	{
+		$c_r = RED();
+		$c_g = GREEN();
+		$c_c = CYAN();
+		$c_m = MAGENTA();
+		$c_b = BLUE();
+		$c_y = YELLOW();
+	}
+	else
+	{
+		$c_r = BRIGHT_RED();
+		$c_g = BRIGHT_GREEN();
+		$c_c = BRIGHT_CYAN();
+		$c_m = BRIGHT_MAGENTA();
+		$c_b = BRIGHT_BLUE();
+		$c_y = BRIGHT_YELLOW();
+	}
 }
 
 # Initiate our telnet connection
@@ -415,36 +441,24 @@ sub tune
 		$bestsignal{$freq} = $level;
 	}
 
-	if ($coloroutput)
+	# Define the "recording" text once
+	my $recording = " (" . $c_r . "Recording" . $r . ")";
+
+	# Define the color for level here so we can make it stand out
+	my $l = $c_g;
+
+	# If we're seeing a stronger signal, highlight it
+	if ($bestlevel) { $l = $c_r; }
+
+	if ($type eq "scan")
 	{
-		# Define our colors in shorthand here
-		my $l = $bold . GREEN;
-		my $bl = $bold . GREEN;
-		my $r = RESET;
-
-		# If we're seeing a stronger signal, highlight it
-		if ($bestlevel) { $l = $bl = $bold . RED; }
-
-		if ($type eq "scan")
-		{
-			printf('%12s' . " --- [" . '%12s' . " - " . '%12s' . "] [" . $l . '%s' . $r . " / " . $bl . '%s' . $r . "] [" . '%s' . "kHz] [" . '%5s' . "]",$curfreq,$startfreq,$endfreq,$level,$bestsignal{$freq},$step/1000,$mode);
-		}
-		else
-		{
-			printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . $l . '%s' . $r . " / " . $bl . '%s' . $r . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$bestsignal{$freq},$fileline);
-		}
+		printf('%12s' . " --- [" . '%12s' . " - " . '%12s' . "] [" . $l . '%5s' . $r . " / " . $l . '%5s' . $r . "] [" . '%s' . "kHz] [" . '%5s' . "]",$curfreq,$startfreq,$endfreq,$level,$bestsignal{$freq},$step/1000,$mode);
 	}
 	else
 	{
-		if ($type eq "scan")
-		{
-			printf('%12s' . " --- [" . '%12s' . " - " . '%12s' . "] [" . '%s' . " / " . '%s' . "] [" . '%s' . "kHz] [" . '%5s' . "]",$curfreq,$startfreq,$endfreq,$level,$bestsignal{$freq},$step/1000,$mode);
-		}
-		else
-		{
-			printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . '%s' . " / " . '%s' . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$bestsignal{$freq},$fileline);
-		}
+		printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . $l . '%5s' . $r . " / " . $l . '%5s' . $r . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$bestsignal{$freq},$fileline);
 	}
+
 
 	# If we're in monitor mode and want to record, do it here
 	if ($level ne "" && $level > $delaylevel && $monitoring && $record)
@@ -453,7 +467,7 @@ sub tune
 		$monitortime = time;
 		if ($recordingmonitor eq 0)
 		{
-			print " (Recording)";
+			print $recording;
 			logfile("Recording Started: " . prettyfreq($freq) . "\n");
 			$recordingmonitor = 1;
 			$recordstart = time;
@@ -462,7 +476,7 @@ sub tune
 		}
 		else
 		{
-			print " (Recording)";
+			print $recording;
 		}
 	}
 	else
@@ -497,7 +511,7 @@ sub tune
 		if ($wait)
 		{
 			print " --- Waiting for clear...";
-			if ($record) { print "  (Recording)"; }
+			if ($record) { print $recording; }
 			print "\n";
 			my $waitlevel = 0;
 			while ($waitlevel > $delaylevel)
@@ -512,13 +526,13 @@ sub tune
 		elsif ($stop)
 		{
 			print " --- Hit enter to continue..";
-			if ($record) { print "  (Recording)"; }
+			if ($record) { print $recording; }
 			<STDIN>;
 		}
 		else
 		{
 			print " --- Signal detected, waiting...";
-			if ($record) { print "  (Recording)"; }
+			if ($record) { print $recording; }
 			print "\n";
 			Time::HiRes::sleep($delaytime);
 		}
@@ -584,28 +598,11 @@ sub prettyfreq($)
 # Print repeat header with some info
 sub repeatheader
 {
-	if ($coloroutput)
-	{
-		# Define our colors in shorthand here
-		my $s = $bold . GREEN;
-		my $a = $bold . CYAN;
-		my $rc = $bold . MAGENTA;
-		my $r = RESET;
-
-		printf("--- Scan: " . $s . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " - Most Active: " . $a . '%s' . $r . " (" . '%s' . ") - Record: " . $rc . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " ---\n",
-			secondstoreadable(time-$timestarted),
-			getactive(),
-			secondstoreadable($recordtime)
-		);
-	}
-	else
-	{
-		printf("--- Scan: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Record: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " ---\n",
-			secondstoreadable(time-$timestarted),
-			getactive(),
-			secondstoreadable($recordtime)
-		);
-	}
+	printf("--- Scan: " . $c_g . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " - Most Active: " . $c_c . '%s' . $r . " (" . $c_c . '%s' . $r . ") - Record: " . $c_m . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " ---\n",
+		secondstoreadable(time-$timestarted),
+		getactive(),
+		secondstoreadable($recordtime)
+	);
 
 	my $logline = sprintf("Time Scaning: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Time Recording: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " (" . '%s' . ")\n",
 		secondstoreadable(time-$timestarted),

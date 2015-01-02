@@ -125,5 +125,8 @@ With this script, you can pause the scanning using a hotkey.  How you assign tha
    * Time::HiRes
    * Getopt::Long
 
+  * Optional Perl modules
+   * Term::ANSIColor
+
 [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/khaytsus/gqrx-scan/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 
