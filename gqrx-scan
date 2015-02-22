@@ -512,16 +512,48 @@ sub tune
 		{
 			print " --- Waiting for clear...";
 			if ($record) { print $recording; }
-			print "\n";
 			my $waitlevel = 0;
-			while ($waitlevel > $delaylevel)
+			my $logprint = 1;
+			my $lastsignal = 0;
+
+			while ($waitlevel > $delaylevel || $lastsignal < $delaytime)
 			{
 				Time::HiRes::sleep($levelwait);
 				$t->print("l");
 				my $prematch;
 				($prematch, $waitlevel) = $t->waitfor(Match => '/-{0,1}\d+\.\d/', Timeout => 5, Errmode => "return"); 
+
+				# Only print to screen when signal is good
+				if ($waitlevel > $delaylevel)
+				{
+					print ":";
+				}
+
+				# Only print to log when signal is good and logprint is set
+				if ($logprint && $waitlevel > $delaylevel)
+				{
+					logfile("Recording: " . prettyfreq($freq) . " level " . $waitlevel . "\n");
+					$logprint = 0;
+				}
+
+				# Track how long we haven't seen a signal so we can wait up to $delaytime seconds before ending recording
+				if ($waitlevel > $delaylevel)
+				{
+					$lastsignal = 0;
+				}
+				else
+				{
+					# Only print to the log the first time we lose signal
+					if ($lastsignal eq 0)
+					{
+						logfile("Signal lost: " . prettyfreq($freq) . " level " . $waitlevel . "\n");
+						$logprint = 1;
+					}
+					$lastsignal = $lastsignal + $levelwait;
+					print ".";
+				}
 			}
-			Time::HiRes::sleep($delaytime);
+			print "\n";
 		}
 		elsif ($stop)
 		{
@@ -541,7 +573,8 @@ sub tune
 		if ($record)
 		{
 			$recordtime = $recordtime + time - $recordstart;
-			logfile("Recording Ended: " . prettyfreq($freq) . "\n");
+			my $thisrecordtime = time - $recordstart;
+			logfile("Recording Ended: " . prettyfreq($freq) . " [" . $thisrecordtime . " seconds]\n");
 			$t->print("LOS");
 			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
 		}
