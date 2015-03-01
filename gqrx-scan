@@ -68,6 +68,9 @@ my $pause = 0.5;
 # Hz to increment by in frequency scan mode
 my $step = "1000";
 
+# Setting to disable screen clearing in case certain terminals have problems with it
+my $clearscreen = 1;
+
 ### No need to touch below here
 
 # Available GQRX demodulation modes
@@ -85,6 +88,7 @@ my $namewidth = 25;
 
 # Flag to track if we're recording in monitor mode
 my $recordingmonitor = 0;
+my $recordstart = 0;
 
 # Timeout variables so we can record in monitor mode and not create new files needlessly
 my $monitortime = 0;
@@ -207,6 +211,15 @@ if ($type eq "file")
 
 	# If we get a 1 back, skip tuning until we match a frequency
 	my $skiptune = loadcsv($tmpfreq);
+
+	# Clear the screen to show monitored frequency and header info nicely
+	if ($monitor && $clearscreen)
+	{
+		print "\033[2J";
+		print "\033[0;0H";
+		print "Monitoring mode\n\n";
+	}
+
 	while (1)
 	{
 		foreach(@csv)
@@ -312,6 +325,7 @@ if ($type eq "file")
 		if ($monitor)
 		{
 			$monitoring = 1;
+			if ($clearscreen) { repeatheader(); }
 		}
 		else
 		{
@@ -404,7 +418,11 @@ sub tune
 
 	my $bestlevel = 0;
 
-	my $recordstart = 0;
+	unless ($recordingmonitor)
+	{
+		$recordstart = 0;
+	}
+
 	unless ($monitoring)
 	{
 		$t->print("F $freq");
@@ -465,12 +483,12 @@ sub tune
 	{
 		addactive($freq);
 		$monitortime = time;
+		$recordstart = time;
 		if ($recordingmonitor eq 0)
 		{
 			print $recording;
-			logfile("Recording Started: " . prettyfreq($freq) . "\n");
+			logfile("Recording: " . prettyfreq($freq) . " level " . $level . "\n");
 			$recordingmonitor = 1;
-			$recordstart = time;
 			$t->print("AOS");
 			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
 		}
@@ -486,9 +504,10 @@ sub tune
 			if ((time - $monitortime) > $delaytime)
 			{
 				$recordingmonitor = 0;
-				logfile("Recording Ended: " . prettyfreq($freq) . "\n");
 				print "\e[K";
 				$recordtime = $recordtime + time - $recordstart;
+				my $thisrecordtime = time - $recordstart;
+				logfile("Recording Ended: " . prettyfreq($freq) . " [" . $thisrecordtime . " seconds]\n");
 				$t->print("LOS");
 				$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
 			}
@@ -631,6 +650,11 @@ sub prettyfreq($)
 # Print repeat header with some info
 sub repeatheader
 {
+	if ($monitor)
+	{
+		print "\n";
+	}
+
 	printf("--- Scan: " . $c_g . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " - Most Active: " . $c_c . '%s' . $r . " (" . $c_c . '%s' . $r . ") - Record: " . $c_m . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " ---\n",
 		secondstoreadable(time-$timestarted),
 		getactive(),
@@ -647,6 +671,11 @@ sub repeatheader
 	{
 		logfile($logline);
 		$lastlogheader = time;
+	}
+
+	if ($monitor)
+	{
+		print "\033[2A";
 	}
 }
 
