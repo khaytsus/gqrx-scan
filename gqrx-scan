@@ -481,13 +481,14 @@ sub tune
 	# If we're in monitor mode and want to record, do it here
 	if ($level ne "" && $level > $delaylevel && $monitoring && $record)
 	{
-		addactive($freq);
 		$monitortime = time;
-		$recordstart = time;
+
 		if ($recordingmonitor eq 0)
 		{
+			$recordstart = time;
+			addactive($freq);
 			print $recording;
-			logfile("Recording: " . prettyfreq($freq) . " level " . $level . "\n");
+			logfile("Recording Started: " . prettyfreq($freq) . " level " . $level . "\n");
 			$recordingmonitor = 1;
 			$t->print("AOS");
 			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
@@ -551,7 +552,7 @@ sub tune
 				# Only print to log when signal is good and logprint is set
 				if ($logprint && $waitlevel > $delaylevel)
 				{
-					logfile("Recording: " . prettyfreq($freq) . " level " . $waitlevel . "\n");
+					logfile("Recording Started: " . prettyfreq($freq) . " level " . $waitlevel . "\n");
 					$logprint = 0;
 				}
 
