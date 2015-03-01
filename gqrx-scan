@@ -138,6 +138,9 @@ GetOptions(
 # Check sane usage for different modes
 checkusage();
 
+# Sanity check the sideband mode usage
+checksideband($start,$mode);
+
 # Test our log path
 testlog();
 
@@ -919,6 +922,18 @@ sub header
 
 	print "Channel/Frequency pause time:  " . $pause . "s\n";
 	print "Delaylevel: [$delaylevel]  Delaytime: [$delaytime]\n\n";
+}
+
+# Sideband warning
+sub checksideband
+{
+	my ($freq, $mode) = (@_);
+	if ( ($freq < 7.3e6 && uc($mode) eq "USB") ||
+	     ($freq > 7.3e6 && uc($mode) eq "LSB")
+	    )
+	{
+		print "Warning:  Sideband mode selected may be incorrect\n";
+	}
 }
 
 # Sanity check our usage and parameters
