@@ -1,7 +1,7 @@
 gqrx-scan
 ================
 
-Control GRQX to scan frequencies or from channels using a CSV file.
+Control GRQX to scan frequencies or from channels using a CSV file.  The CSV file can either be the file which GQRX itself creates using its built-in bookmarking functionality or the CSV style which gqrx-remote uses.  More details are at the bottom of this readme.
 
 ### High level functionality
   * Scan a range of frequencies with a specified mode (AM, FM, etc) or a csv file
@@ -22,6 +22,12 @@ Control GRQX to scan frequencies or from channels using a CSV file.
 
  * Scan entire CSV file with a pause of 2s between channels
   * gqrx-scan --type file --pause 2
+
+ * Scan entire GQRX CSV file with a pause of 2s between channels
+  * gqrx-scan --type gqrxfile --pause 2
+
+ * Scan all lines matching the tags 2M or 70cm
+  * gqrx-scan --type gqrxfile --tags "2M|70cm"
 
  * Scan lines 1, 2, and 40 through 60 in the file, recording when a signal is detected
   * gqrx-scan --type file --channels 1,2,40-60 --record
@@ -50,12 +56,14 @@ Control GRQX to scan frequencies or from channels using a CSV file.
  * --step 250
   * Step by 250mhz in frequency scanning mode
 
-##### File mode options
+##### gqrxfile or file mode options
 
   * --channels 19,20,30,40-50
     * Scan channels 19, 20, 30, and channels 40 through 50
   * --pattern "FRS|GMR|^145"
     * Scan channels named FRS or GMR or frequencies starting with 145
+  * --tags "2M|Air"
+    * Scan channels tagged 2M or Air
   * --showall
     * Show all channels even if skipped
   * --dumpchannels
@@ -93,7 +101,9 @@ There are options in the script which can be modified to set them as defaults bu
 
 ### Bookmarks file
 
-The CSV file that can be used for scanning pre-set channels is the same format as the gqrx-remote project (https://github.com/marmelo/gqrx-remote) uses, without any headers, with the columns being HZ,MODE,Name
+If using the gqrxfile mode, the CSV file in $HOME/.config/gqrx/bookmarks.csv will be used.  This is the file which GQRX uses for its built-in bookmarking system and contains the frequency, channel name, modulation, bandwidth, and optional tags.  Note, bandwidth is not used by GQRX Scan at this time as the GQRX Remote command set does not support setting bandwidth currently.
+
+Otherwise, you may use the generic "file" mode which is a CSV file that can be used for scanning pre-set channels is the same format as the gqrx-remote project (https://github.com/marmelo/gqrx-remote) uses, without any headers, with the columns being HZ,MODE,Name
 
 The CSV file path is defined in the file and should be updated for where your file is located.
 
@@ -119,6 +129,8 @@ With this script, you can pause the scanning using a hotkey.  How you assign tha
 ### Dependencies
 
   * GQRX 2.3 or greater with Remote Control enabled
+
+  * GQRX 2.3.2 (?) to have the GQRX Bookmarks file available
 
   * Perl modules
    * Net::Telnet
