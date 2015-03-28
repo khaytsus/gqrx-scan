@@ -90,7 +90,8 @@ my %gqrxmodes = ( "AM" => "AM",
 
 # Other globals to declare for options
 my ($type, $mode, $start, $end, $channel, $channels, $showall, $pattern, $tags, $exclude,
-	$stop, $wait, $record, $monitor, $dumpchannels, $coloroutput, $light, $help, $sort);
+	$stop, $wait, $record, $monitor, $dumpchannels, $coloroutput, $light, $help, $sort,
+	$csvfilename, $gqrxcsvfilename);
 
 # Other globals we use elsewhere
 my (@exclude, @channels, @csv, %bestsignal, @tags);
@@ -146,6 +147,8 @@ GetOptions(
 	'coloroutput' => \$coloroutput,
 	'light' => \$light,
 	'sort' => \$sort,
+	'csvfilename=s' => \$csvfilename,
+	'gqrxcsvfilename=s' => \$gqrxcsvfilename,
 	'help' => \$help
 	);
 
@@ -884,6 +887,32 @@ sub checkusage
 	if ($help)
 	{
 		usage();
+	}
+
+	if ($csvfilename)
+	{
+		if (-e $csvfilename)
+		{
+			$csv = $csvfilename;
+			print "Using generic CSV file:  " . $csv . "\n\n";
+		}
+		else
+		{
+			print "Specified csvfile does not exist, using default: " . $csv . "\n\n";
+		}
+	}
+
+	if ($gqrxcsvfilename)
+	{
+		if (-e $gqrxcsvfilename)
+		{
+			$gqrxcsv = $gqrxcsvfilename;
+			print "Using GQRX CSV file:  " . $gqrxcsv . "\n\n";
+		}
+		else
+		{
+			print "Specified csvfile does not exist, using default: " . $gqrxcsv . "\n\n";
+		}
 	}
 
 	# Convert exclude argument to array, including sci notation
