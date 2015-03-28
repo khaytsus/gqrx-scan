@@ -64,6 +64,8 @@ Control GRQX to scan frequencies or from channels using a CSV file.  The CSV fil
     * Scan channels named FRS or GMR or frequencies starting with 145
   * --tags "2M|Air"
     * Scan channels tagged 2M or Air
+  * --sort
+    * Sort CSV file contents by name alphabetically
   * --showall
     * Show all channels even if skipped
   * --dumpchannels

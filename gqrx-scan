@@ -90,7 +90,7 @@ my %gqrxmodes = ( "AM" => "AM",
 
 # Other globals to declare for options
 my ($type, $mode, $start, $end, $channel, $channels, $showall, $pattern, $tags, $exclude,
-	$stop, $wait, $record, $monitor, $dumpchannels, $coloroutput, $light, $help);
+	$stop, $wait, $record, $monitor, $dumpchannels, $coloroutput, $light, $help, $sort);
 
 # Other globals we use elsewhere
 my (@exclude, @channels, @csv, %bestsignal, @tags);
@@ -145,6 +145,7 @@ GetOptions(
 	'dumpchannels' => \$dumpchannels,
 	'coloroutput' => \$coloroutput,
 	'light' => \$light,
+	'sort' => \$sort,
 	'help' => \$help
 	);
 
@@ -675,6 +676,7 @@ sub loadcsv($)
 	if ($nametest <= $namewidth) { $namewidth = $nametest; }
 	my $csvlines = @csv;
 	print "Loaded $csvlines lines from CSV file\n\n";
+	if ($sort) { sortcsv(); }
 	return $skiptune;
 }
 
@@ -730,6 +732,7 @@ sub loadgqrxcsv($)
 	if ($nametest <= $namewidth) { $namewidth = $nametest; }
 	my $csvlines = @csv;
 	print "Loaded $csvlines lines from GQRX CSV file\n\n";
+	if ($sort) { sortcsv(); }
 	return $skiptune;
 }
 
@@ -1047,6 +1050,37 @@ sub checksideband
 	}
 }
 
+# Sort CSV alphabetically
+sub sortcsv
+{
+	print "Sorting CSV file\n";
+	my (@names,@sortedcsv);
+	foreach(@csv)
+	{
+		my ($freq,$mode,$linetags,$bw,@name) = split(',',$_);
+		push(@names, @name);
+	}
+
+	my @sortednames = sort @names;
+
+	foreach(@sortednames)
+	{
+		my $name = $_;
+		foreach(@csv)
+		{
+			my $line = $_;
+			my ($freq,$mode,$linetags,$bw,@name) = split(',',$line);
+			my $linename = join(' ',@name);
+			if ($linename eq $name)
+			{
+				push(@sortedcsv, $line);
+			}
+		}
+	}
+
+	@csv = @sortedcsv;
+}
+
 # Sanity check our usage and parameters
 sub usage
 {
@@ -1070,6 +1104,7 @@ sub usage
 	print "--channels 19-30		Scan channels 19 through 30\n";
 	print "--pattern \"FRS|GMR|^145\"	Scan channels named FRS or GMR or frequencies starting with 145\n";
 	print "--tags \"2M|Air\"			Scan channels tagged using 2M or Air (requires using gqrx csv file)\n";
+	print "--sort				Alphabetically sort CSV file lines\n";
 	print "--showall			Show all channels even if skipped\n";
 	print "--dumpchannels			Show all channels, do not tune any\n\n";
 
