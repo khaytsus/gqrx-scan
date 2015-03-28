@@ -906,6 +906,12 @@ sub checkusage
 
 	if ($delaylevel > 0) { usage("delaylevel"); }
 
+	# Tags are not valid in generic CSV file mode
+	if ($type eq "file")
+	{
+		if ($tags ne "") { usage($type); }
+	}
+
 	if ($type eq "file" || $type eq "gqrxfile")
 	{
 		# Accept --channels or --channel as argument for channels
@@ -1034,6 +1040,11 @@ sub header
 		print "Not stopping for signal detection\n\n";
 	}
 
+	if ($channels && $sort)
+	{
+		print "Warning:  Sorted list with channel mode, channels might be out of order you expect\n\n";
+	}
+
 	print "Channel/Frequency pause time:  " . $pause . "s\n";
 	print "Delaylevel: [$delaylevel]  Delaytime: [$delaytime]\n\n";
 }
@@ -1137,6 +1148,7 @@ sub usage
 	{
 		print "\n\nMode $text detected but missing required parameters\n\n";
 		if ($channel && $pattern) { print "--channel and --pattern are exclusive options\n"; }
+		if ($tags) { print "--tags is not valid in generic CSV file mode\n"; }
 	}
 
 	if ($text eq "gqrxfile")

@@ -97,6 +97,28 @@ Control GRQX to scan frequencies or from channels using a CSV file.  The CSV fil
     * Do not pause to listen for signal
     * Note the requirement of the equal sign
 
+### CSV File Sort
+
+The --sort option is included if you want to sort the CSV file iteration by the channel name rather than by the natural sort of the file in case you want to group channels by name.  This is handy when you are monitoring 5 channels of a common set of frequencies but they are in different places on the spectrum, this will allow you to show CHAN1 CHAN2 etc rather than by order of frequency.
+
+### Incompatable options
+
+There are some options which will not work together or may cause unexpected side-effects.  The following are a few examples of such conflicts.
+
+  * --type file --tags
+    * Tags is not valid in the generic CSV file mode, only the gqrxfile mode has tags
+
+  * --type file/gqrxfile --channel 1 --pattern "ABC"
+    * Channel and Pattern are exclusive options as they are handled slightly differently
+
+  * --type gqrxfile --channel 1 --tags "ABC"
+    * Channel and tags are exclusive options as they are handled slightly differently
+
+Combinations which will display a warning
+
+  * --type file/gqrxfile --channels 1-5 --sort
+    * Will likely sort the channels in a different order than they are in the file (ie:  Might scan different channels than you expect)
+
 ### Defaults vs Command Line
 
 There are options in the script which can be modified to set them as defaults but almost all options (such as signal detection level, scan pause time, etc) can be specified on the command line.  To see the script defaults look in the script or the output of the --help command line argument.
