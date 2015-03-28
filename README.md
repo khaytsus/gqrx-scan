@@ -105,7 +105,7 @@ Note:  You can abbreviate command line arguments as long as they're unique, such
 
 ### CSV File Sort
 
-The --sort option is included if you want to sort the CSV file iteration by the channel name rather than by the natural sort of the file in case you want to group channels by name.  This is handy when you are monitoring 5 channels of a common set of frequencies but they are in different places on the spectrum, this will allow you to show CHAN1 CHAN2 etc rather than by order of frequency.
+The --sort option is included if you want to sort the GQRX CSV file iteration by the channel name rather than by the natural sort of the file in case you want to group channels by name.  This is handy when you are monitoring 5 channels of a common set of frequencies but they are in different places on the spectrum, this will allow you to show CHAN1 CHAN2 etc rather than by order of frequency.  It is not valid to sort the generic CSV as the available columns between the two files are different.
 
 ### Incompatable options
 
@@ -113,6 +113,9 @@ There are some options which will not work together or may cause unexpected side
 
   * --type file --tags
     * Tags is not valid in the generic CSV file mode, only the gqrxfile mode has tags
+
+  * --type file --sort
+    * Sorting is not valid in the generic CSV file mode due to differences in CSV file contents
 
   * --type file/gqrxfile --channel 1 --pattern "ABC"
     * Channel and Pattern are exclusive options as they are handled slightly differently
@@ -122,7 +125,7 @@ There are some options which will not work together or may cause unexpected side
 
 Combinations which will display a warning
 
-  * --type file/gqrxfile --channels 1-5 --sort
+  * --type gqrxfile --channels 1-5 --sort
     * Will likely sort the channels in a different order than they are in the file (ie:  Might scan different channels than you expect)
 
 ### Defaults vs Command Line

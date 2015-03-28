@@ -939,6 +939,7 @@ sub checkusage
 	if ($type eq "file")
 	{
 		if ($tags ne "") { usage($type); }
+		if ($sort) { usage($type); }
 	}
 
 	if ($type eq "file" || $type eq "gqrxfile")
@@ -1178,6 +1179,7 @@ sub usage
 		print "\n\nMode $text detected but missing required parameters\n\n";
 		if ($channel && $pattern) { print "--channel and --pattern are exclusive options\n"; }
 		if ($tags) { print "--tags is not valid in generic CSV file mode\n"; }
+		if ($sort) { print "--sort is not valid in generic CSV file mode\n"; }
 	}
 
 	if ($text eq "gqrxfile")
