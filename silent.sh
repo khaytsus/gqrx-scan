@@ -10,6 +10,7 @@ mkdir -p ${path}/empty
 review=/home/wally/bin/gqrx-scan/review.sh
 list=""
 counter=0
+emptycounter=0
 
 newname=""
 channelfilepath=/home/wally/.config/gqrx/bookmarks.csv
@@ -46,6 +47,7 @@ do
 		amplitude=$(sox "$each" -n stat 2>&1 | grep "Maximum amplitude" | cut -d ":" -f 2 | sed 's/ //g')
 		if [[ $(echo "if (${amplitude} > ${Max}) 1 else 0" | bc) -eq 0 ]]; then
 			rm $each
+			((emptycounter+=1))
 		else
 			tagchannel ${namestart} ${timestamp} ${freq}
 			echo "New Recording:  ${path}/mp3/${newname}.mp3"
@@ -58,7 +60,7 @@ do
 done
 
 echo ""
-echo Found $counter files to review
+echo Found $counter files to review ($emptycounter empty files)
 echo ""
 
 # Make a simple script to review the files
