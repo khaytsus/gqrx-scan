@@ -1127,7 +1127,7 @@ sub usage
 {
 	my ($text) = (@_);
 
-	print "$0 - Control GRQX to scan.\n\n";
+	print "$0 - Control GQRX to scan.\n\n";
 
 	print "$0 --type [gqrxfile file scan] --help for mode help on each mode\n\n";
 
