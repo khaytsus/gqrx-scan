@@ -56,7 +56,7 @@ Note:  You can abbreviate command line arguments as long as they're unique, such
  * --mode USB
   * Scan in USB demodulation
  * --step 250
-  * Step by 250mhz in frequency scanning mode
+  * Step by 250hz in frequency scanning mode
 
 ##### gqrxfile or file mode options
 
