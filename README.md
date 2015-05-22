@@ -1,7 +1,7 @@
 gqrx-scan
 ================
 
-Control GRQX to scan frequencies or from channels using a CSV file.  The CSV file can either be the file which GQRX itself creates using its built-in bookmarking functionality or the CSV style which gqrx-remote uses.  More details are at the bottom of this readme.
+Control GQRX to scan frequencies or from channels using a CSV file.  The CSV file can either be the file which GQRX itself creates using its built-in bookmarking functionality or the CSV style which gqrx-remote uses.  More details are at the bottom of this readme.
 
 ### High level functionality
   * Scan a range of frequencies with a specified mode (AM, FM, etc) or a csv file
