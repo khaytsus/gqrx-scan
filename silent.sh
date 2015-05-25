@@ -1,10 +1,16 @@
 #!/bin/sh
 
+# Script which will find files in the specified directory and discard those
+# which are determined to be empty files and the rest are moved into the
+# review directory.  The files which are queued for review are passed into
+# the review script.
+
 Max=0.0
 path=/home/wally/baofeng/Recordings
 
-mkdir -p ${path}/mp3
-mkdir -p ${path}/empty
+reviewpath=${path}/mp3/review
+
+mkdir -p $reviewpath
 
 # Set up variables for reviewing the files after converting them
 review=/home/wally/bin/gqrx-scan/review.sh
@@ -50,11 +56,11 @@ do
 			((emptycounter+=1))
 		else
 			tagchannel ${namestart} ${timestamp} ${freq}
-			echo "New Recording:  ${path}/mp3/${newname}.mp3"
+			echo "New Recording:  ${reviewpath}/${newname}.mp3"
 			((counter+=1))
-			lame --abr 56 --quiet $each "mp3/${newname}.mp3"
+			lame --abr 56 --quiet $each "${reviewpath}/${newname}.mp3"
 			rm $each
-			list="${list} \"${path}/mp3/${newname}.mp3\""
+			list="${list} \"${reviewpath}/${newname}.mp3\""
 		fi
 	fi
 done
