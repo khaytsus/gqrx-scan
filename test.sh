@@ -1,4 +1,4 @@
 #!/bin/sh
 
-argss=$#
+args=$#
 echo "Number of arguments: $args"
