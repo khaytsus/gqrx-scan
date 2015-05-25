@@ -60,7 +60,7 @@ do
 done
 
 echo ""
-echo Found $counter files to review ($emptycounter empty files)
+echo "Found $counter files to review ($emptycounter empty files)"
 echo ""
 
 # Make a simple script to review the files
