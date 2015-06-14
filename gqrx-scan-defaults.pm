@@ -8,17 +8,21 @@
 
 # Some script defaults that can be set in the config
 
+# Change the GQRX remote control IP/port
 #$gqrxip = "127.0.0.1";
 #$gqrxport = "7356";
 
+# Change the location of the pause file
 #$pausefile = "/home/wally/.gqrx-pause.txt";
 
-#$logpath = "/home/wally/baofeng/";
-#$logfilename = "gqrxscan.log";
+# Change the gqrx log file output
+#$logfile = "/home/wally/gqrxscan.log";
 
+# Change the behavior of the logging
 #$logheader = 600;
 #$lastlogheader = 0; 
 
+# Change if we send ANSI codes to clear the terminal or not
 #$clearscreen = 1;
 
 # Command line options that can be pre-set
