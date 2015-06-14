@@ -121,6 +121,8 @@ The config file is a perl module and must be treated as such.  An example has be
 
 Options specified on the command line over-ride those in both the default and command-line specified config files to allow testing or temporary altering of gqrx-scan behavior.  To over-ride certain options, such as record, you must use the --no prefix, such as --norecord
 
+Options are set in the following order, each subsequent one could over-ride the previous one:  script, default config file, optional config file, command-line arguments
+
 ### CSV File Sort
 
 The --sort option is included if you want to sort the GQRX CSV file iteration by the channel name rather than by the natural sort of the file in case you want to group channels by name.  This is handy when you are monitoring 5 channels of a common set of frequencies but they are in different places on the spectrum, this will allow you to show CHAN1 CHAN2 etc rather than by order of frequency.  It is not valid to sort the generic CSV as the available columns between the two files are different.
