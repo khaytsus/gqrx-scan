@@ -117,7 +117,7 @@ ex:  --norecord
 
 A configuration file can be defined to set any option that is available on the command line to allow quick pre-configurations, such as scanning 10M CW or all GQRX CSV File entries with "GMRS"
 
-The config file is a perl module and must be treated as such.  An example has been included, .gqrx-scan.pm and should be in your $HOME if you want to use it as a default, but it is not required.  It has examples of every option that can be specified on the command line.
+The config file is a perl module and must be treated as such.  An example has been included, gqrx-scan-defaults.pm and should be in your $HOME if you want to use it as a default, but it is not required.  It has examples of every option that can be specified on the command line.
 
 Options specified on the command line over-ride those in both the default and command-line specified config files to allow testing or temporary altering of gqrx-scan behavior.  To over-ride certain options, such as record, you must use the --no prefix, such as --norecord
 
