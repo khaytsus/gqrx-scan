@@ -934,8 +934,6 @@ sub loadconfig()
 # Check command line usage is sane and print some info
 sub checkusage
 {
-print "Record: $record\nstop: $stop\nwait: $wait\n\n";
-
 	if ($help)
 	{
 		usage();
