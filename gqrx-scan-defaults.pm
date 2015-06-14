@@ -6,14 +6,12 @@
 # Uncomment anything you wish to specify by default and update its value.
 # When possible, defaults match those defaults set within the script itself.
 
-my $home = $ENV{"HOME"};
-
 # Some script defaults that can be set in the config
 
 #$gqrxip = "127.0.0.1";
 #$gqrxport = "7356";
 
-#$pausefile = $home . "/.gqrx-pause.txt";
+#$pausefile = "/home/wally/.gqrx-pause.txt";
 
 #$logpath = "/home/wally/baofeng/";
 #$logfilename = "gqrxscan.log";
