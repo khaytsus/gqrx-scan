@@ -12,7 +12,8 @@ Control GQRX to scan frequencies or from channels using a CSV file.  The CSV fil
   * Scan a pattern of channels by name or frequency
   * Resume scan from current frequency or channel
   * Colorize output
-  
+  * Default and optional config files can be defined
+
 ### Signal Detection
   * Pause scanning when a signal level threshold is met
    * Pause for N seconds, until clear, or until the enter key is hit
@@ -43,9 +44,18 @@ Control GQRX to scan frequencies or from channels using a CSV file.  The CSV fil
  * Monitor a single channel, recording when the level is better than -50, waiting for 5 seconds before ending recording after signal drops
   * gqrx-scan --type file --channels 20 --delaylevel=-50 --delaytime 5 --record --monitor
 
+ * Use a config file
+  * gqrx-scan --config /home/path/something.pm
+
 ### Command Line Arguments
 
-Note:  You can abbreviate command line arguments as long as they're unique, such as --co is unique for --coloroutput.  If the argument is not unique it will be ignored and you will see a warning.
+Notes:
+
+You can abbreviate command line arguments as long as they're unique, such as --co is unique for --coloroutput.  If the argument is not unique it will be ignored and you will see a warning.
+
+The following arguments can take a "no" prefix to over-ride config file values:  stop wait record monitor coloroutput light sort
+
+ex:  --norecord
 
 ##### Scan mode operations
 
@@ -102,6 +112,14 @@ Note:  You can abbreviate command line arguments as long as they're unique, such
   * --levelstop=0
     * Do not pause to listen for signal
     * Note the requirement of the equal sign
+
+### Config File
+
+A configuration file can be defined to set any option that is available on the command line to allow quick pre-configurations, such as scanning 10M CW or all GQRX CSV File entries with "GMRS"
+
+The config file is a perl module and must be treated as such.  An example has been included, .gqrx-scan.pm and should be in your $HOME if you want to use it as a default, but it is not required.  It has examples of every option that can be specified on the command line.
+
+Options specified on the command line over-ride those in both the default and command-line specified config files to allow testing or temporary altering of gqrx-scan behavior.  To over-ride certain options, such as record, you must use the --no prefix, such as --norecord
 
 ### CSV File Sort
 

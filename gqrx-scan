@@ -6,7 +6,7 @@
 
 use Net::Telnet;
 use Time::HiRes;
-use Getopt::Long;
+use Getopt::Long qw(GetOptionsFromArray);
 
 # Check to see if we have the Term::ANSIColor module so it's not a hard requirement
 my $ansi = eval
@@ -25,52 +25,55 @@ use strict;
 # Some static defaults for some settings we don't have command line flags for
 
 # GQRX IP and Port
-my $gqrxip = "127.0.0.1";
-my $gqrxport = "7356";
+our $gqrxip = "127.0.0.1";
+our $gqrxport = "7356";
 
 # Location of file which will pause scanning
 my $home = $ENV{"HOME"};
-my $pausefile = $home . "/.gqrx-pause.txt";
+our $pausefile = $home . "/.gqrx-pause.txt";
+
+# Location of default config file
+my $defaultconfigfile = $home . "/" . "gqrx-scan-defaults.pm";
 
 # Location of the CSV file to scan
-my $csv = "/opt/gqrx-remote/gqrx-bookmarks.csv";
-my $gqrxcsv = $home . "/.config/gqrx/bookmarks.csv";
+our $csv = "/opt/gqrx-remote/gqrx-bookmarks.csv";
+our $gqrxcsv = $home . "/.config/gqrx/bookmarks.csv";
 
 # Log file components
-my $logpath = "/home/wally/baofeng/";
-my $logfilename = "gqrxscan.log";
-my $logfile = $logpath . $logfilename;
-my $tmplogpath = "/tmp/";
+our $logpath = "/home/wally/baofeng/";
+our $logfilename = "gqrxscan.log";
+our $logfile = $logpath . $logfilename;
+our $tmplogpath = "/tmp/";
 
 # Time delay before checking signal level after changing channels
 # Increase this if you find it going to the next channel then waiting
 # when a signal is detected, it seems to take a while to detect
-my $levelwait = ".3";
+our $levelwait = ".3";
 
 # How long in seconds do we wait before printing the summary to the log file
-my $logheader = 600;
-my $lastlogheader = 0;
+our $logheader = 600;
+our $lastlogheader = 0;
 
 # Defaults to some command-line options, all of these can be over-ridden
 
 # Delay scanning if we hear a signal
-my $levelstop = 1;
+our $levelstop = 1;
 
 # Default Level that will cause a scanning delay
-my $delaylevel = "-40";
+our $delaylevel = "-40";
 
 # Time to wait if signal is detected
-my $delaytime = "5";
+our $delaytime = "5";
 
 # Time between switching channels/frequencies (cannot be less than
 # the time it takes to determine the signal level)
-my $pause = 0.5;
+our $pause = 0.5;
 
 # Hz to increment by in frequency scan mode
-my $step = "1000";
+our $step = "1000";
 
 # Setting to disable screen clearing in case certain terminals have problems with it
-my $clearscreen = 1;
+our $clearscreen = 1;
 
 ### No need to touch below here
 
@@ -89,7 +92,7 @@ my %gqrxmodes = ( "AM" => "AM",
 		  "CW-U" => "CWU" );
 
 # Other globals to declare for options
-my ($type, $mode, $start, $end, $channel, $channels, $showall, $pattern, $tags, $exclude,
+our ($config, $type, $mode, $start, $end, $channel, $channels, $showall, $pattern, $tags, $exclude,
 	$stop, $wait, $record, $monitor, $dumpchannels, $coloroutput, $light, $help, $sort,
 	$csvfilename, $gqrxcsvfilename);
 
@@ -97,7 +100,7 @@ my ($type, $mode, $start, $end, $channel, $channels, $showall, $pattern, $tags, 
 my (@exclude, @channels, @csv, %bestsignal, @tags);
 
 # Our maximum channel name width
-my $namewidth = 25;
+our $namewidth = 25;
 
 # Flag to track if we're recording in monitor mode
 my $recordingmonitor = 0;
@@ -122,14 +125,26 @@ my ($r, $c_r, $c_g, $c_c, $c_m, $c_b, $c_y);
 # Save the argument list to logfile
 my @args = @ARGV;
 
-# Get our command line options
+# Copy the argument list so we can use it in GetOptionsFromArray
+my @configoptions = @ARGV;
+
+# Load default config file
+loaddefaultconfig();
+
+# Grab our config option
+GetOptionsFromArray( \@configoptions, 'config=s' => \$config );
+
+# Load command-line specified config file
+loadconfig();
+
+# Get our remaing command line options
 GetOptions(
+	'config=s' => \$config,
 	'type=s' => \$type,
 	'mode:s' => \$mode,
 	'start:s' => \$start,
 	'end:s' => \$end,
-	'channel:s' => \$channel,
-	'channels:s' => \$channels,
+	'channel|channels:s' => \$channel,
 	'showall' => \$showall,
 	'step:s' => \$step,
 	'pattern=s' => \$pattern,
@@ -138,20 +153,21 @@ GetOptions(
 	'delaylevel:s' => \$delaylevel,
 	'delaytime:f' => \$delaytime,
 	'pause:s' => \$pause,
-	'stop' => \$stop,
-	'wait' => \$wait,
+	'stop!' => \$stop,
+	'wait!' => \$wait,
 	'levelstop:s' => \$levelstop,
-	'record' => \$record,
-	'monitor' => \$monitor,
+	'record!' => \$record,
+	'monitor!' => \$monitor,
 	'dumpchannels' => \$dumpchannels,
-	'coloroutput' => \$coloroutput,
-	'light' => \$light,
-	'sort' => \$sort,
+	'coloroutput!' => \$coloroutput,
+	'light!' => \$light,
+	'sort!' => \$sort,
 	'csvfilename=s' => \$csvfilename,
 	'gqrxcsvfilename=s' => \$gqrxcsvfilename,
 	'help' => \$help
 	);
 
+# stop wait record monitor coloroutput light sort
 # Check sane usage for different modes
 checkusage();
 
@@ -881,9 +897,45 @@ sub signal_handler
 	exit;
 }
 
+# Load default config file
+sub loaddefaultconfig()
+{
+	# If we have a default config file, load it
+	if (-e $defaultconfigfile)
+	{
+		print "Loading default config file $defaultconfigfile\n\n";
+		require $defaultconfigfile;
+	}
+	else
+	{
+		print "No default config file found..\n\n";
+	}
+}
+
+# Load user-specified config file
+sub loadconfig()
+{
+	# If we have a config file parameter passed, load that config file if it exists
+	if ($config)
+	{
+		if (-e $config)
+		{
+			print "Loading config file $config\n\n";
+			require $config;
+		}
+		else
+		{
+			print "Config file $config does not exist, exiting...\n\n";
+			exit;
+		}
+	}
+}
+
 # Check command line usage is sane and print some info
 sub checkusage
 {
+print "Record: $record\nstop: $stop\nwait: $wait\n\n";
+
 	if ($help)
 	{
 		usage();
@@ -1039,6 +1091,10 @@ sub checkusage
 		print "Starting in $type mode from $startfreq to $endfreq in $mode mode\n";
 		print "Signal level delay level of $delaylevel waiting for " . $delaytime . "s\n\n";
 	}
+	elsif ($config || -e $defaultconfigfile)
+	{
+		# do nothing, we'll try to load a config file
+	}
 	else
 	{
 		usage();
@@ -1145,26 +1201,26 @@ sub usage
 	print "--channels 19-30		Scan channels 19 through 30\n";
 	print "--pattern \"FRS|GMR|^145\"	Scan channels named FRS or GMR or frequencies starting with 145\n";
 	print "--tags \"2M|Air\"			Scan channels tagged using 2M or Air (requires using gqrx csv file)\n";
-	print "--sort				Alphabetically sort CSV file lines\n";
+	print "--sort				Alphabetically sort CSV file lines (over-ride config with --nosort)\n";
 	print "--showall			Show all channels even if skipped\n";
 	print "--dumpchannels			Show all channels, do not tune any\n\n";
 
 	print "General scan or file options:\n\n";
-	print "--pause 2			Wait 2 seconds between frequencies/channels (default: $pause)\n";
+	print "--pause 2			Wait 2 seconds between frequencies/channels (default: $pause) or over-ride config with --nowait\n";
 	print "--exclude 28.401e6,28.410e6	Exclude frequency 28 401 and 28 410\n";
-	print "--monitor			Monitor a single frequency or channel\n\n";
+	print "--monitor			Monitor a single frequency or channel (over-ride config with --nomonitor\n\n";
 
 	print "Signal detection options:\n\n";
 	print "--delaylevel=-30		Delay scanning if a signal of -30 or better is heard (default: $delaylevel)\n";
 	print "--delaytime 10			Delay scanning for 10s when a signal is detected (default: $delaytime)\n";
-	print "--record			Record when signal is detected (default: 0)\n";
-	print "--stop				Stop scanning until the enter key is hit (default: 0)\n";
+	print "--record			Record when signal is detected (default: 0) or over-ride config with --norecord\n";
+	print "--stop				Stop scanning until the enter key is hit (default: 0) or over-ride config with --nostop\n";
 	print "--wait				Stop scanning until the channel is clear (default: 0)\n";
 	print "--levelstop=0			Do not pause to listen for signal (default: $levelstop)\n\n";
 
 	print "Colorizing Options:\n\n";
-	print "--coloroutput		Colorize the output (default: $coloroutput)\n";
-	print "--light			Use darker colors for a light theme terminal (default: 0)\n";
+	print "--coloroutput		Colorize the output (default: $coloroutput) or over-ride config with --nocoloroutput\n";
+	print "--light			Use darker colors for a light theme terminal (default: 0) or over-ride config with --nolight\n";
 
 	if ($text eq "scan")
 	{
