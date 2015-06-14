@@ -7,6 +7,7 @@
 use Net::Telnet;
 use Time::HiRes;
 use Getopt::Long qw(GetOptionsFromArray);
+Getopt::Long::Configure( 'pass_through' );
 
 # Check to see if we have the Term::ANSIColor module so it's not a hard requirement
 my $ansi = eval
