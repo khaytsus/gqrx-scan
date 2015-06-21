@@ -270,6 +270,7 @@ if ($type eq "file" || $type eq "gqrxfile")
 			my $line = $_;
 			my $tune = 0;
 			my $excluded = 0;
+			my $tunedexcluded = 0;
 			chomp($line);
 			my ($freq,$mode,$linetags,$bw,@name) = split(',',$line);
 
@@ -336,6 +337,7 @@ if ($type eq "file" || $type eq "gqrxfile")
 					{
 						$tune = 0;
 						$excluded = 1;
+						$tunedexcluded = 1;
 						last;
 					}
 				}
@@ -354,7 +356,11 @@ if ($type eq "file" || $type eq "gqrxfile")
 			{
 				if ($showall || $excluded || $dumpchannels)
 				{
-					printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . '%5s' . "] [Line " . '%3s' . "] --- Skipped\n",$curfreq,$name,$mode,"n/a",$fileline);
+					# Don't show if it's not even in our list of channels to scan anyway
+					if ($tunedexcluded || $dumpchannels)
+					{
+						printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . '%5s' . "] [Line " . '%3s' . "] --- Skipped\n",$curfreq,$name,$mode,"n/a",$fileline);
+					}
 				}
 			}
 			$fileline++;
