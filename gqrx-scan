@@ -113,6 +113,7 @@ my $monitortimeout = 0;
 
 # Track how many seconds we've recorded
 my $recordtime = 0;
+my $recordcount = 0;
 
 # Track the most active frequency/channel
 my %mostactive;
@@ -552,6 +553,7 @@ sub tune
 		{
 			$recordstart = time;
 			addactive($freq);
+			$recordcount++;
 			print $recording;
 			logfile("Recording Started: " . prettyfreq($freq) . " level " . $level . "\n");
 			$recordingmonitor = 1;
@@ -584,6 +586,7 @@ sub tune
 	if ($levelstop && $level ne "" && $level > $delaylevel && $monitoring eq 0)
 	{
 		addactive($freq);
+		$recordcount++;
 		# Start recording
 		if ($record)
 		{
@@ -792,16 +795,18 @@ sub repeatheader
 		print "\n";
 	}
 
-	printf("--- Scan: " . $c_g . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " - Most Active: " . $c_c . '%s' . $r . " (" . $c_c . '%s' . $r . ") - Record: " . $c_m . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " ---\n",
-		secondstoreadable(time-$timestarted),
-		getactive(),
-		secondstoreadable($recordtime)
-	);
-
-	my $logline = sprintf("Time Scaning: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Time Recording: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " (" . '%s' . ")\n",
+	printf("--- Scan: " . $c_g . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " - Most Active: " . $c_c . '%s' . $r . " (" . $c_c . '%s' . $r . ") - Record: " . $c_m . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " (" . $c_m . '%s' . $r . ") ---\n",
 		secondstoreadable(time-$timestarted),
 		getactive(),
 		secondstoreadable($recordtime),
+		$recordcount
+	);
+
+	my $logline = sprintf("Time Scanning: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Time Recording: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Recordings: " . '%s' . " (" . '%s' . ")\n",
+		secondstoreadable(time-$timestarted),
+		getactive(),
+		secondstoreadable($recordtime),
+		$recordcount,
 		($record) ? "Enabled" : "Disabled"
 	);
 	if ((time - $lastlogheader) > $logheader)
