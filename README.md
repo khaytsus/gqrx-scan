@@ -182,6 +182,10 @@ With this script, you can pause the scanning using a hotkey.  How you assign tha
    * If you changed the IP or Port which GQRX uses for Remote Control, you must update the script to match
   * Perl Issues
    * Check your dependencies
+   * Your distribution most likely packages the requirements, look for them there before going to CPAN or other repositories
+  * Command Not Found type errors when running the scripts
+   * Run gqrx-scan directly with perl, or set the script as executable.
+   * Note that the script might not be in your executable path, so even if set executable you may have to run it with the full or relative path, ie:  ./gqrx-scan
 
 ### Dependencies
 
