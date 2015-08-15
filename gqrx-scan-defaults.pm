@@ -14,14 +14,16 @@
 #$gqrxip = "127.0.0.1";
 #$gqrxport = "7356";
 
+my $home = $ENV{"HOME"};
+
 ## Change the location of the pause file
-#$pausefile = "/home/wally/.gqrx-pause.txt";
+#$pausefile = $home . "/.gqrx-pause.txt";
 
 ## Change the gqrx log file output
-#$logfile = "/home/wally/gqrxscan.log";
+#$logfile = $home . "/gqrxscan.log";
 
 ## Set a default config file to use
-#$config = "/home/wally/gmrs.pm";
+#$config = $home . "/gmrs.pm";
 
 ## Set the file type to use by default.  gqrxfile, file, and scan are possible options
 #$type = "gqrxfile";
@@ -46,7 +48,7 @@
 #$csvfilename = "/opt/gqrx-remote/gqrx-bookmarks.csv";
 
 ## Filename for "gqrxfile" mode
-#$gqrxcsvfilename = "/home/wally/.config/gqrx/bookmarks.csv";
+#$gqrxcsvfilename = $home . "/.config/gqrx/bookmarks.csv";
 
 ## What channel or channels to scan, separated by commas
 #$channel = "1,4";

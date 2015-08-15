@@ -41,7 +41,7 @@ our $csv = "/opt/gqrx-remote/gqrx-bookmarks.csv";
 our $gqrxcsv = $home . "/.config/gqrx/bookmarks.csv";
 
 # Log file components
-our $logpath = "/home/wally/baofeng/";
+our $logpath = $home . "/baofeng/";
 our $logfilename = "gqrxscan.log";
 our $logfile = $logpath . $logfilename;
 our $tmplogpath = "/tmp/";
