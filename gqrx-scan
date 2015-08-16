@@ -1200,6 +1200,9 @@ sub usage
 	print "All frequencies are given in Hz, but can be given in scientific notation\n";
 	print "if desired.  ie:  28.410e6 and 28410000 are equivalent.\n\n";
 
+	print "Config file operations:\n\n";
+	print "--config gmrs.pm		Load the config file gmrs.pm\n\n";
+
 	print "Scan mode operations:\n\n";
 	print "--start 28400000		Start at frequency 28.400\n";
 	print "--end 28410000 			Stop at frequency 28.410\n";
