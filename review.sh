@@ -25,7 +25,8 @@ do
 	if [ -e "$each" ]; then
 		play "$each"
 		while [[ "$key" == "" ]]; do
-			echo [${counter}/${files}] $each
+			basename=`basename $each`
+			echo [${counter}/${files}] $basename
 			((counter+=1))
 			echo -n "[r]eplay, [d]elete, [s]kip, [p]riority: "
 			read -s -N 1 key
