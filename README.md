@@ -193,7 +193,7 @@ With this script, you can pause the scanning using a hotkey.  How you assign tha
 
   * GQRX 2.3 or greater with Remote Control enabled
 
-  * GQRX 2.3.2 (?) to have the GQRX Bookmarks file available
+  * GQRX 2.4 to have the GQRX Bookmarks file available
 
   * Perl modules
    * Net::Telnet
