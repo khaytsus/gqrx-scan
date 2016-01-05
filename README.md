@@ -180,6 +180,8 @@ With this script, you can pause the scanning using a hotkey.  How you assign tha
   * problem connecting to "127.0.0.1", port 7356: Connection refused at /usr/local/bin/gqrx-scan line 90
    * Enable Remote Control in GQRX.  As of version 2.3, this option is always disabled on startup so you have to re-enable it each time you launch GQRX.
    * If you changed the IP or Port which GQRX uses for Remote Control, you must update the script to match
+  * Other "write error" filehandle issues
+   * If there is an IPV6 address in the GQRX TCP Remote settings try removing it
   * Perl Issues
    * Check your dependencies
    * Your distribution most likely packages the requirements, look for them there before going to CPAN or other repositories
