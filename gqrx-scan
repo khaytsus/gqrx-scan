@@ -226,9 +226,13 @@ if ($coloroutput && $ansi)
 # Initiate our telnet connection
 my $t = new Net::Telnet (Timeout => 2,
 	port => $gqrxport,
+	Errmode => 'return'
 	);
 
-$t->open($gqrxip);
+my $openresult = $t->open($gqrxip);
+
+# Make sure we were able to connect, or fail early
+if ($openresult ne 1) { conerror("connect",__LINE__); }
 
 if ($type eq "file" || $type eq "gqrxfile")
 {
@@ -242,7 +246,7 @@ if ($type eq "file" || $type eq "gqrxfile")
 	$t->print("f");
 	my ($prematch, $tmpfreq) = $t->waitfor(Match => '/\d{7,10}/', Timeout => 5, Errmode => "return");
 	chomp($tmpfreq);
-
+	if ($tmpfreq == "") { conerror("empty",__LINE__); }
 	my $skiptune = 0;
 
 	if ($type eq "file")
@@ -408,6 +412,7 @@ if ($type eq "scan")
 	$t->print("f");
 	my ($prematch, $tmpfreq) = $t->waitfor(Match => '/\d{7,10}/', Timeout => 5, Errmode => "return");
 	chomp($tmpfreq);
+	if ($tmpfreq == "") { conerror("empty",__LINE__); }
 	my $freq = $start;
 	# If our current frequency is within our boundaries, start from there
 	if ($monitor)
@@ -1186,6 +1191,25 @@ sub sortcsv
 	}
 
 	@csv = @sortedcsv;
+}
+
+# Print connection error information and exit
+sub conerror
+{
+	my ($type,$line) = (@_);
+	if ($type eq "connect")
+	{
+		print "Unable to open connection to GQRX at line $line\n\n";
+	}
+
+	if ($type eq "empty")
+	{
+		print "Unable to retrieve data from GQRX at line $line.\n\n";
+	}
+
+	print "Make sure TCP Remote is enabled and listening on $gqrxip and port $gqrxport\n";
+	print "Exiting..\n";
+	exit;
 }
 
 # Sanity check our usage and parameters
