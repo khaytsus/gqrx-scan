@@ -1231,7 +1231,7 @@ sub usage
 	print "--start 28400000		Start at frequency 28.400\n";
 	print "--end 28410000 			Stop at frequency 28.410\n";
 	print "--mode USB			Scan in USB demodulation\n";
-	print "--step 250			Step by 250mhz in frequency scanning mode (default: $step)\n\n";
+	print "--step 250			Step by 250hz in frequency scanning mode (default: $step)\n\n";
 
 	print "GQRXFile / File mode options:\n\n";
 	print "--channels 19,20,30		Scan channels 19, 20, and 30\n";
