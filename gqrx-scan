@@ -7,14 +7,13 @@
 use Net::Telnet;
 use Time::HiRes;
 use Getopt::Long qw(GetOptionsFromArray);
-Getopt::Long::Configure( 'pass_through' );
+Getopt::Long::Configure('pass_through');
 
 # Check to see if we have the Term::ANSIColor module so it's not a hard requirement
-my $ansi = eval
-{
-	require Term::ANSIColor;
-	Term::ANSIColor->import(':constants');
-	1;
+my $ansi = eval {
+    require Term::ANSIColor;
+    Term::ANSIColor->import(':constants');
+    1;
 };
 
 # Handle all signals
@@ -26,7 +25,7 @@ use strict;
 # Some static defaults for some settings we don't have command line flags for
 
 # GQRX IP and Port
-our $gqrxip = "127.0.0.1";
+our $gqrxip   = "127.0.0.1";
 our $gqrxport = "7356";
 
 # Location of file which will pause scanning
@@ -37,14 +36,14 @@ our $pausefile = $home . "/.gqrx-pause.txt";
 my $defaultconfigfile = $home . "/" . "gqrx-scan-defaults.pm";
 
 # Location of the CSV file to scan
-our $csv = "/opt/gqrx-remote/gqrx-bookmarks.csv";
+our $csv     = "/opt/gqrx-remote/gqrx-bookmarks.csv";
 our $gqrxcsv = $home . "/.config/gqrx/bookmarks.csv";
 
 # Log file components
-our $logpath = $home . "/baofeng/";
+our $logpath     = $home . "/baofeng/";
 our $logfilename = "gqrxscan.log";
-our $logfile = $logpath . $logfilename;
-our $tmplogpath = "/tmp/";
+our $logfile     = $logpath . $logfilename;
+our $tmplogpath  = "/tmp/";
 
 # Time delay before checking signal level after changing channels
 # Increase this if you find it going to the next channel then waiting
@@ -52,7 +51,7 @@ our $tmplogpath = "/tmp/";
 our $levelwait = ".3";
 
 # How long in seconds do we wait before printing the summary to the log file
-our $logheader = 600;
+our $logheader     = 600;
 our $lastlogheader = 0;
 
 # Defaults to some command-line options, all of these can be over-ridden
@@ -79,40 +78,47 @@ our $clearscreen = 1;
 ### No need to touch below here
 
 # Available GQRX demodulation modes
-my @modes = ("AM", "FM", "WFM", "WFM_ST", "LSB", "USB", "CW", "CWL", "CWU");
+my @modes = ( "AM", "FM", "WFM", "WFM_ST", "LSB", "USB", "CW", "CWL", "CWU" );
 
 # Defined demodulation modes from GQRX Bookmarks
-my %gqrxmodes = ( "AM" => "AM",
-		  "Narrow FM" => "FM",
-		  "WFM (stereo)" => "WFM_ST",
-		  "WFM (mono)" => "WFM",
-		  "LSB" => "LSB",
-		  "USB" => "USB",
-		  "CW" => "CW",
-		  "CW-L" => "CWL",
-		  "CW-U" => "CWU" );
+my %gqrxmodes = (
+    "AM"           => "AM",
+    "Narrow FM"    => "FM",
+    "WFM (stereo)" => "WFM_ST",
+    "WFM (mono)"   => "WFM",
+    "LSB"          => "LSB",
+    "USB"          => "USB",
+    "CW"           => "CW",
+    "CW-L"         => "CWL",
+    "CW-U"         => "CWU"
+);
 
 # Other globals to declare for options
-our ($config, $type, $mode, $start, $end, $channel, $channels, $showall, $pattern, $tags, $exclude,
-	$stop, $wait, $record, $monitor, $dumpchannels, $coloroutput, $light, $help, $sort,
-	$csvfilename, $gqrxcsvfilename);
+our (
+    $config,      $type,    $mode,     $start,
+    $end,         $channel, $channels, $showall,
+    $pattern,     $tags,    $exclude,  $stop,
+    $wait,        $record,  $monitor,  $dumpchannels,
+    $coloroutput, $light,   $help,     $sort,
+    $csvfilename, $gqrxcsvfilename
+);
 
 # Other globals we use elsewhere
-my (@exclude, @channels, @csv, %bestsignal, @tags);
+my ( @exclude, @channels, @csv, %bestsignal, @tags );
 
 # Our maximum channel name width
 our $namewidth = 25;
 
 # Flag to track if we're recording in monitor mode
 my $recordingmonitor = 0;
-my $recordstart = 0;
+my $recordstart      = 0;
 
 # Timeout variables so we can record in monitor mode and not create new files needlessly
-my $monitortime = 0;
+my $monitortime    = 0;
 my $monitortimeout = 0;
 
 # Track how many seconds we've recorded
-my $recordtime = 0;
+my $recordtime  = 0;
 my $recordcount = 0;
 
 # Track the most active frequency/channel
@@ -122,7 +128,7 @@ my %mostactive;
 my $timestarted = time;
 
 # Initialize the color variables to use later, but shorthand to make our printf's reasonable
-my ($r, $c_r, $c_g, $c_c, $c_m, $c_b, $c_y);
+my ( $r, $c_r, $c_g, $c_c, $c_m, $c_b, $c_y );
 
 # Save the argument list to logfile
 my @args = @ARGV;
@@ -141,40 +147,40 @@ loadconfig();
 
 # Get our remaing command line options
 GetOptions(
-	'config=s' => \$config,
-	'type=s' => \$type,
-	'mode:s' => \$mode,
-	'start:s' => \$start,
-	'end:s' => \$end,
-	'channel|channels:s' => \$channel,
-	'showall' => \$showall,
-	'step:s' => \$step,
-	'pattern=s' => \$pattern,
-	'tags=s' => \$tags,
-	'exclude=s' => \$exclude,
-	'delaylevel:s' => \$delaylevel,
-	'delaytime:f' => \$delaytime,
-	'pause:s' => \$pause,
-	'stop!' => \$stop,
-	'wait!' => \$wait,
-	'levelstop:s' => \$levelstop,
-	'record!' => \$record,
-	'monitor!' => \$monitor,
-	'dumpchannels' => \$dumpchannels,
-	'coloroutput!' => \$coloroutput,
-	'light!' => \$light,
-	'sort!' => \$sort,
-	'csvfilename=s' => \$csvfilename,
-	'gqrxcsvfilename=s' => \$gqrxcsvfilename,
-	'help' => \$help
-	);
+    'config=s'           => \$config,
+    'type=s'             => \$type,
+    'mode:s'             => \$mode,
+    'start:s'            => \$start,
+    'end:s'              => \$end,
+    'channel|channels:s' => \$channel,
+    'showall'            => \$showall,
+    'step:s'             => \$step,
+    'pattern=s'          => \$pattern,
+    'tags=s'             => \$tags,
+    'exclude=s'          => \$exclude,
+    'delaylevel:s'       => \$delaylevel,
+    'delaytime:f'        => \$delaytime,
+    'pause:s'            => \$pause,
+    'stop!'              => \$stop,
+    'wait!'              => \$wait,
+    'levelstop:s'        => \$levelstop,
+    'record!'            => \$record,
+    'monitor!'           => \$monitor,
+    'dumpchannels'       => \$dumpchannels,
+    'coloroutput!'       => \$coloroutput,
+    'light!'             => \$light,
+    'sort!'              => \$sort,
+    'csvfilename=s'      => \$csvfilename,
+    'gqrxcsvfilename=s'  => \$gqrxcsvfilename,
+    'help'               => \$help
+);
 
 # stop wait record monitor coloroutput light sort
 # Check sane usage for different modes
 checkusage();
 
 # Sanity check the sideband mode usage
-checksideband($start,$mode);
+checksideband( $start, $mode );
 
 # Test our log path
 testlog();
@@ -182,1112 +188,1109 @@ testlog();
 # Print some information at the beginning of the run
 header();
 
-logfile("Started scanning.  Arguments: " . join(" ", @args) . "\n");
+logfile( "Started scanning.  Arguments: " . join( " ", @args ) . "\n" );
 
 # Remove our pause file if we're starting with it existing
-if (-e $pausefile) { unlink $pausefile; }
+if ( -e $pausefile ) { unlink $pausefile; }
 
 # Sanity check some settings
 
 # Our channel delay can't be less than our levelwait variable
-if ($pause < $levelwait ) { $pause = $levelwait; }
+if ( $pause < $levelwait ) { $pause = $levelwait; }
 
 # We don't want an insanely low step do we?
-if ("$step" < 100) { $step = "100"; }
+if ( "$step" < 100 ) { $step = "100"; }
 
 if ($monitor) { $levelstop = 0; }
 
 # If we're colorizing, set our bold default
-if ($coloroutput && $ansi)
-{
-	$r = RESET();
+if ( $coloroutput && $ansi ) {
+    $r = RESET();
 
-	# Don't use bright colors on a light terminal theme
-	if ($light)
-	{
-		$c_r = RED();
-		$c_g = GREEN();
-		$c_c = CYAN();
-		$c_m = MAGENTA();
-		$c_b = BLUE();
-		$c_y = YELLOW();
-	}
-	else
-	{
-		$c_r = BRIGHT_RED();
-		$c_g = BRIGHT_GREEN();
-		$c_c = BRIGHT_CYAN();
-		$c_m = BRIGHT_MAGENTA();
-		$c_b = BRIGHT_BLUE();
-		$c_y = BRIGHT_YELLOW();
-	}
+    # Don't use bright colors on a light terminal theme
+    if ($light) {
+        $c_r = RED();
+        $c_g = GREEN();
+        $c_c = CYAN();
+        $c_m = MAGENTA();
+        $c_b = BLUE();
+        $c_y = YELLOW();
+    }
+    else {
+        $c_r = BRIGHT_RED();
+        $c_g = BRIGHT_GREEN();
+        $c_c = BRIGHT_CYAN();
+        $c_m = BRIGHT_MAGENTA();
+        $c_b = BRIGHT_BLUE();
+        $c_y = BRIGHT_YELLOW();
+    }
 }
 
 # Initiate our telnet connection
-my $t = new Net::Telnet (Timeout => 2,
-	port => $gqrxport,
-	Errmode => 'return'
-	);
+my $t = new Net::Telnet(
+    Timeout => 2,
+    port    => $gqrxport,
+    Errmode => 'return'
+);
 
 my $openresult = $t->open($gqrxip);
 
 # Make sure we were able to connect, or fail early
-if ($openresult ne 1) { conerror("connect",__LINE__); }
+if ( $openresult ne 1 ) { conerror( "connect", __LINE__ ); }
 
-if ($type eq "file" || $type eq "gqrxfile")
-{
-	$| = 1;
-	my $fileline = 0;
-	my $monitoring = 0;
-	my $tuned = 0;
-	my $runs = 0;
+if ( $type eq "file" || $type eq "gqrxfile" ) {
+    $| = 1;
+    my $fileline   = 0;
+    my $monitoring = 0;
+    my $tuned      = 0;
+    my $runs       = 0;
 
-	# Retrieve our current frequency
-	$t->print("f");
-	my ($prematch, $tmpfreq) = $t->waitfor(Match => '/\d{7,10}/', Timeout => 5, Errmode => "return");
-	chomp($tmpfreq);
-	if ($tmpfreq == "") { conerror("empty",__LINE__); }
-	my $skiptune = 0;
+    # Retrieve our current frequency
+    $t->print("f");
+    my ( $prematch, $tmpfreq ) = $t->waitfor(
+        Match   => '/\d{7,10}/',
+        Timeout => 5,
+        Errmode => "return"
+    );
+    chomp($tmpfreq);
+    if ( $tmpfreq == "" ) { conerror( "empty", __LINE__ ); }
+    my $skiptune = 0;
 
-	if ($type eq "file")
-	{
-		# If we get a 1 back, skip tuning until we match a frequency
-		$skiptune = loadcsv($tmpfreq);
-	}
-	if ($type eq "gqrxfile")
-	{
-		# If we get a 1 back, skip tuning until we match a frequency
-		$skiptune = loadgqrxcsv($tmpfreq);
-	}
+    if ( $type eq "file" ) {
 
-	# Clear the screen to show monitored frequency and header info nicely
-	if ($monitor && $clearscreen)
-	{
-		print "\033[2J";
-		print "\033[0;0H";
-		print "Monitoring mode\n\n";
-	}
+        # If we get a 1 back, skip tuning until we match a frequency
+        $skiptune = loadcsv($tmpfreq);
+    }
+    if ( $type eq "gqrxfile" ) {
 
-	while (1)
-	{
-		foreach(@csv)
-		{
-			my $line = $_;
-			my $tune = 0;
-			my $excluded = 0;
-			my $tunedexcluded = 0;
-			chomp($line);
-			my ($freq,$mode,$linetags,$bw,@name) = split(',',$line);
+        # If we get a 1 back, skip tuning until we match a frequency
+        $skiptune = loadgqrxcsv($tmpfreq);
+    }
 
-			if ($freq eq "" || $mode eq "")
-			{
-				print "Invalid bookmark line: [$line]\n";
-				sleep 1;
-			}
-			$freq =~ s/[^0-9]//g;
-			$mode =~ s/[^A-Z_]//g;
-			my $name = join(" ",@name);
-			$name =~ s/[^a-zA-Z0-9 ]//g;
-			my $curfreq = prettyfreq($freq);
+    # Clear the screen to show monitored frequency and header info nicely
+    if ( $monitor && $clearscreen ) {
+        print "\033[2J";
+        print "\033[0;0H";
+        print "Monitoring mode\n\n";
+    }
 
-			# If we have channels, match them up and tune
+    while (1) {
+        foreach (@csv) {
+            my $line          = $_;
+            my $tune          = 0;
+            my $excluded      = 0;
+            my $tunedexcluded = 0;
+            chomp($line);
+            my ( $freq, $mode, $linetags, $bw, @name ) = split( ',', $line );
 
-			# If we're in monitor mode, don't skip tuning the one time
-			if ($monitor) { $skiptune = 0; }
-			# Don't check if we're skipping tuning
-			unless($skiptune)
-			{
-				if (@channels)
-				{
-					foreach(@channels)
-					{
-						if ($fileline eq $_)
-						{
-							$tune = 1;
-							last;
-						}
-					}
-				}
-				# If no channels, no pattern, and no tags, tune in
-				elsif ($pattern eq "" && $tags eq "")
-				{
-					$tune = 1;
-				}
-				# If we specified a pattern, match it up
-				elsif  ($pattern && (($name =~ /$pattern/) || ($curfreq =~ /$pattern/)))
-				{
-					$tune = 1;
-				}
-				# If we have tags, see if we match a tag
-				elsif ($tags)
-				{
-					my (@linetags) = split('\|', $linetags);
-					foreach(@tags)
-					{
-						my $cmdtag = $_;
-						foreach(@linetags)
-						{
-							if ($_ eq $cmdtag)
-							{
-								$tune = 1;
-							}
-						}
-					}
-				}
+            if ( $freq eq "" || $mode eq "" ) {
+                print "Invalid bookmark line: [$line]\n";
+                sleep 1;
+            }
+            $freq =~ s/[^0-9]//g;
+            $mode =~ s/[^A-Z_]//g;
+            my $name = join( " ", @name );
+            $name =~ s/[^a-zA-Z0-9 ]//g;
+            my $curfreq = prettyfreq($freq);
 
-				# Exclude frequencies
-				foreach(@exclude)
-				{
-					if ($freq eq $_ || $name =~ /$_/)
-					{
-						$tune = 0;
-						$excluded = 1;
-						$tunedexcluded = 1;
-						last;
-					}
-				}
-			}
+            # If we have channels, match them up and tune
 
-			# Just dump the channel list if asked
-			if ($dumpchannels) { $tune = 0; }
+            # If we're in monitor mode, don't skip tuning the one time
+            if ($monitor) { $skiptune = 0; }
 
-			# If we matched, tune in
-			if ($tune)
-			{
-				$tuned = 1;
-				tune($freq, $mode, $curfreq, $name, $fileline, "", "", $monitoring);
-			}
-			else
-			{
-				if ($showall || $excluded || $dumpchannels)
-				{
-					# Don't show if it's not even in our list of channels to scan anyway
-					if ($tunedexcluded || $dumpchannels)
-					{
-						printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . '%5s' . "] [Line " . '%3s' . "] --- Skipped\n",$curfreq,$name,$mode,"n/a",$fileline);
-					}
-				}
-			}
-			$fileline++;
+            # Don't check if we're skipping tuning
+            unless ($skiptune) {
+                if (@channels) {
+                    foreach (@channels) {
+                        if ( $fileline eq $_ ) {
+                            $tune = 1;
+                            last;
+                        }
+                    }
+                }
 
-			# If our channel frequency matches, disable skipping
-			if ($tmpfreq eq $freq && $skiptune)
-			{
-				$skiptune = 0;
-			}
+                # If no channels, no pattern, and no tags, tune in
+                elsif ( $pattern eq "" && $tags eq "" ) {
+                    $tune = 1;
+                }
 
-			while (-e $pausefile)
-			{
-				print "\rWaiting to resume...";
-				Time::HiRes::sleep($levelwait);
-			}
-			print "\r";
-		}
-		if ($dumpchannels) { last; }
-		$fileline = 0;
-		$runs++;
+                # If we specified a pattern, match it up
+                elsif (
+                    $pattern
+                    && (   ( $name =~ /$pattern/ )
+                        || ( $curfreq =~ /$pattern/ ) )
+                    )
+                {
+                    $tune = 1;
+                }
 
-		if ($tuned == 0 && $runs > 1)
-		{
-			print "No channels tuned; invalid channel list or pattern?\n";
-			sleep 1;
-		}
+                # If we have tags, see if we match a tag
+                elsif ($tags) {
+                    my (@linetags) = split( '\|', $linetags );
+                    foreach (@tags) {
+                        my $cmdtag = $_;
+                        foreach (@linetags) {
+                            if ( $_ eq $cmdtag ) {
+                                $tune = 1;
+                            }
+                        }
+                    }
+                }
 
-		if ($monitor)
-		{
-			$monitoring = 1;
-			if ($clearscreen) { repeatheader(); }
-		}
-		else
-		{
-			repeatheader();
-		}
-	}
+                # Exclude frequencies
+                foreach (@exclude) {
+                    if ( $freq eq $_ || $name =~ /$_/ ) {
+                        $tune          = 0;
+                        $excluded      = 1;
+                        $tunedexcluded = 1;
+                        last;
+                    }
+                }
+            }
+
+            # Just dump the channel list if asked
+            if ($dumpchannels) { $tune = 0; }
+
+            # If we matched, tune in
+            if ($tune) {
+                $tuned = 1;
+                tune( $freq, $mode, $curfreq, $name, $fileline, "", "",
+                    $monitoring );
+            }
+            else {
+                if ( $showall || $excluded || $dumpchannels ) {
+
+          # Don't show if it's not even in our list of channels to scan anyway
+                    if ( $tunedexcluded || $dumpchannels ) {
+                        printf( '%12s' . " - "
+                                . "%${namewidth}s" . " - [" . '%5s' . "] ["
+                                . '%5s'
+                                . "] [Line " . '%3s'
+                                . "] --- Skipped\n",
+                            $curfreq, $name, $mode, "n/a", $fileline );
+                    }
+                }
+            }
+            $fileline++;
+
+            # If our channel frequency matches, disable skipping
+            if ( $tmpfreq eq $freq && $skiptune ) {
+                $skiptune = 0;
+            }
+
+            while ( -e $pausefile ) {
+                print "\rWaiting to resume...";
+                Time::HiRes::sleep($levelwait);
+            }
+            print "\r";
+        }
+        if ($dumpchannels) { last; }
+        $fileline = 0;
+        $runs++;
+
+        if ( $tuned == 0 && $runs > 1 ) {
+            print "No channels tuned; invalid channel list or pattern?\n";
+            sleep 1;
+        }
+
+        if ($monitor) {
+            $monitoring = 1;
+            if ($clearscreen) { repeatheader(); }
+        }
+        else {
+            repeatheader();
+        }
+    }
 }
 
-if ($type eq "scan")
-{
-	my $monitoring = 0;
-	# Retrieve our current frequency
-	$t->print("f");
-	my ($prematch, $tmpfreq) = $t->waitfor(Match => '/\d{7,10}/', Timeout => 5, Errmode => "return");
-	chomp($tmpfreq);
-	if ($tmpfreq == "") { conerror("empty",__LINE__); }
-	my $freq = $start;
-	# If our current frequency is within our boundaries, start from there
-	if ($monitor)
-	{
-		$end = $start;
-	}
-	elsif ($tmpfreq >= $start && $tmpfreq <= $end)
-	{
-		$freq = $tmpfreq;
-		my $curfreq = prettyfreq($freq);
-		print "Continuing from $curfreq\n\n";
-	}
+if ( $type eq "scan" ) {
+    my $monitoring = 0;
 
-	$| = 1;
-	while ( 1 )
-	{
-		my $tune = 1;
-		my $curfreq = prettyfreq($freq);
-		my $startfreq = prettyfreq($start);
-		my $endfreq = prettyfreq($end);
+    # Retrieve our current frequency
+    $t->print("f");
+    my ( $prematch, $tmpfreq ) = $t->waitfor(
+        Match   => '/\d{7,10}/',
+        Timeout => 5,
+        Errmode => "return"
+    );
+    chomp($tmpfreq);
+    if ( $tmpfreq == "" ) { conerror( "empty", __LINE__ ); }
+    my $freq = $start;
 
-		# Exclude frequencies
-		if (@exclude)
-		{
-			foreach(@exclude)
-			{
-				if ($freq eq $_)
-				{
-					$tune = 0;
-					last;
-				}
-			}
-		}
-		if ($tune)
-		{
-			tune($freq, $mode, $curfreq, "", "", $startfreq, $endfreq,$monitoring);
-		}
-		else
-		{
-			printf('%12s' . " Skipped\n", prettyfreq($freq));
-		}
+    # If our current frequency is within our boundaries, start from there
+    if ($monitor) {
+        $end = $start;
+    }
+    elsif ( $tmpfreq >= $start && $tmpfreq <= $end ) {
+        $freq = $tmpfreq;
+        my $curfreq = prettyfreq($freq);
+        print "Continuing from $curfreq\n\n";
+    }
 
-		if ($monitor)
-		{
-			$monitoring = 1;
-		}
+    $| = 1;
+    while (1) {
+        my $tune      = 1;
+        my $curfreq   = prettyfreq($freq);
+        my $startfreq = prettyfreq($start);
+        my $endfreq   = prettyfreq($end);
 
-		while (-e $pausefile)
-		{
-			print "\rWaiting to resume...";
-			Time::HiRes::sleep($levelwait);
-		}
+        # Exclude frequencies
+        if (@exclude) {
+            foreach (@exclude) {
+                if ( $freq eq $_ ) {
+                    $tune = 0;
+                    last;
+                }
+            }
+        }
+        if ($tune) {
+            tune( $freq, $mode, $curfreq, "", "", $startfreq, $endfreq,
+                $monitoring );
+        }
+        else {
+            printf( '%12s' . " Skipped\n", prettyfreq($freq) );
+        }
 
-		unless ($monitoring)
-		{
-			$freq = $freq + $step;
-			if ($freq > $end)
-			{
-				$freq = $start;
-				repeatheader();
-			}
-		}
+        if ($monitor) {
+            $monitoring = 1;
+        }
 
-		print "\r";
+        while ( -e $pausefile ) {
+            print "\rWaiting to resume...";
+            Time::HiRes::sleep($levelwait);
+        }
 
-	}
+        unless ($monitoring) {
+            $freq = $freq + $step;
+            if ( $freq > $end ) {
+                $freq = $start;
+                repeatheader();
+            }
+        }
+
+        print "\r";
+
+    }
 }
 
 exit;
 
 # Tune into frequency
-sub tune
-{
-	my ($freq, $mode, $curfreq, $name, $fileline, $startfreq, $endfreq, $monitoring) = (@_);
-	my $bestlevel = 0;
+sub tune {
+    my ( $freq, $mode, $curfreq, $name, $fileline, $startfreq, $endfreq,
+        $monitoring )
+        = (@_);
+    my $bestlevel = 0;
 
-	unless ($recordingmonitor)
-	{
-		$recordstart = 0;
-	}
+    unless ($recordingmonitor) {
+        $recordstart = 0;
+    }
 
-	unless ($monitoring)
-	{
-		$t->print("F $freq");
-		$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
-		$t->print("M $mode");
-		$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
-	}
-	my $level = "n/a";
-	if ($levelstop || $monitor)
-	{
-		Time::HiRes::sleep($levelwait);
-		$t->print("l");
-		my $prematch;
-		($prematch, $level) = $t->waitfor(Match => '/-{0,1}\d+\.\d/', Timeout => 5, Errmode => "return"); 
-		chomp($level);
-	}
+    unless ($monitoring) {
+        $t->print("F $freq");
+        $t->waitfor( Match => '/RPRT/', Timeout => 5, Errmode => "return" );
+        $t->print("M $mode");
+        $t->waitfor( Match => '/RPRT/', Timeout => 5, Errmode => "return" );
+    }
+    my $level = "n/a";
+    if ( $levelstop || $monitor ) {
+        Time::HiRes::sleep($levelwait);
+        $t->print("l");
+        my $prematch;
+        ( $prematch, $level ) = $t->waitfor(
+            Match   => '/-{0,1}\d+\.\d/',
+            Timeout => 5,
+            Errmode => "return"
+        );
+        chomp($level);
+    }
 
-	if ($level <= -200)
-	{
-		print "\nSignal Level at -200, GQRX may not be running\n";
-	}
+    if ( $level <= -200 ) {
+        print "\nSignal Level at -200, GQRX may not be running\n";
+    }
 
-	# Store the best signal we've seen for this frequency
-	if (exists $bestsignal{$freq})
-	{
-		if ($bestsignal{$freq} < $level)
-		{
-			$bestlevel = 1;
-			$bestsignal{$freq} = $level;
-		}
-	}
-	else
-	{
-		$bestsignal{$freq} = $level;
-	}
+    # Store the best signal we've seen for this frequency
+    if ( exists $bestsignal{$freq} ) {
+        if ( $bestsignal{$freq} < $level ) {
+            $bestlevel = 1;
+            $bestsignal{$freq} = $level;
+        }
+    }
+    else {
+        $bestsignal{$freq} = $level;
+    }
 
-	# Define the "recording" text once
-	my $recording = " (" . $c_r . "Recording" . $r . ")";
+    # Define the "recording" text once
+    my $recording = " (" . $c_r . "Recording" . $r . ")";
 
-	# Define the color for level here so we can make it stand out
-	my $l = $c_g;
+    # Define the color for level here so we can make it stand out
+    my $l = $c_g;
 
-	# If we're seeing a stronger signal, highlight it
-	if ($bestlevel) { $l = $c_r; }
+    # If we're seeing a stronger signal, highlight it
+    if ($bestlevel) { $l = $c_r; }
 
-	if ($type eq "scan")
-	{
-		printf('%12s' . " --- [" . '%12s' . " - " . '%12s' . "] [" . $l . '%5s' . $r . " / " . $l . '%5s' . $r . "] [" . '%s' . "kHz] [" . '%5s' . "]",$curfreq,$startfreq,$endfreq,$level,$bestsignal{$freq},$step/1000,$mode);
-	}
-	else
-	{
-		printf('%12s' . " - " . "%${namewidth}s" . " - [" . '%5s' . "] [" . $l . '%5s' . $r . " / " . $l . '%5s' . $r . "] [Line " . '%3s' . "]",$curfreq,$name,$mode,$level,$bestsignal{$freq},$fileline);
-	}
+    if ( $type eq "scan" ) {
+        printf( '%12s'
+                . " --- [" . '%12s' . " - " . '%12s' . "] ["
+                . $l . '%5s'
+                . $r . " / "
+                . $l . '%5s'
+                . $r . "] [" . '%s'
+                . "kHz] [" . '%5s' . "]",
+            $curfreq, $startfreq, $endfreq, $level, $bestsignal{$freq},
+            $step / 1000, $mode );
+    }
+    else {
+        printf( '%12s' . " - "
+                . "%${namewidth}s" . " - [" . '%5s' . "] ["
+                . $l . '%5s'
+                . $r . " / "
+                . $l . '%5s'
+                . $r
+                . "] [Line " . '%3s' . "]",
+            $curfreq, $name, $mode, $level, $bestsignal{$freq}, $fileline );
+    }
 
+    # If we're in monitor mode and want to record, do it here
+    if ( $level ne "" && $level > $delaylevel && $monitoring && $record ) {
+        $monitortime = time;
 
-	# If we're in monitor mode and want to record, do it here
-	if ($level ne "" && $level > $delaylevel && $monitoring && $record)
-	{
-		$monitortime = time;
+        if ( $recordingmonitor eq 0 ) {
+            $recordstart = time;
+            addactive($freq);
+            $recordcount++;
+            print $recording;
+            logfile(  "Recording Started: "
+                    . prettyfreq($freq)
+                    . " level "
+                    . $level
+                    . "\n" );
+            $recordingmonitor = 1;
+            $t->print("AOS");
+            $t->waitfor(
+                Match   => '/RPRT/',
+                Timeout => 5,
+                Errmode => "return"
+            );
+        }
+        else {
+            print $recording;
+        }
+    }
+    else {
+        if ($recordingmonitor) {
+            if ( ( time - $monitortime ) > $delaytime ) {
+                $recordingmonitor = 0;
+                print "\e[K";
+                $recordtime = $recordtime + time - $recordstart;
+                my $thisrecordtime = time - $recordstart;
+                logfile(  "Recording Ended: "
+                        . prettyfreq($freq) . " ["
+                        . $thisrecordtime
+                        . " seconds]\n" );
+                $t->print("LOS");
+                $t->waitfor(
+                    Match   => '/RPRT/',
+                    Timeout => 5,
+                    Errmode => "return"
+                );
+            }
+        }
+    }
 
-		if ($recordingmonitor eq 0)
-		{
-			$recordstart = time;
-			addactive($freq);
-			$recordcount++;
-			print $recording;
-			logfile("Recording Started: " . prettyfreq($freq) . " level " . $level . "\n");
-			$recordingmonitor = 1;
-			$t->print("AOS");
-			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
-		}
-		else
-		{
-			print $recording;
-		}
-	}
-	else
-	{
-		if ($recordingmonitor)
-		{
-			if ((time - $monitortime) > $delaytime)
-			{
-				$recordingmonitor = 0;
-				print "\e[K";
-				$recordtime = $recordtime + time - $recordstart;
-				my $thisrecordtime = time - $recordstart;
-				logfile("Recording Ended: " . prettyfreq($freq) . " [" . $thisrecordtime . " seconds]\n");
-				$t->print("LOS");
-				$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
-			}
-		}
-	}
+# If the signal level is above the threshold, stay on this frequency for a while
+    if (   $levelstop
+        && $level ne ""
+        && $level > $delaylevel
+        && $monitoring eq 0 )
+    {
+        addactive($freq);
+        $recordcount++;
 
-	# If the signal level is above the threshold, stay on this frequency for a while
-	if ($levelstop && $level ne "" && $level > $delaylevel && $monitoring eq 0)
-	{
-		addactive($freq);
-		$recordcount++;
-		# Start recording
-		if ($record)
-		{
-			$recordstart = time;
-			logfile("Recording Started: " . prettyfreq($freq) . "\n");
-			$t->print("AOS");
-			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
-		}
+        # Start recording
+        if ($record) {
+            $recordstart = time;
+            logfile( "Recording Started: " . prettyfreq($freq) . "\n" );
+            $t->print("AOS");
+            $t->waitfor(
+                Match   => '/RPRT/',
+                Timeout => 5,
+                Errmode => "return"
+            );
+        }
 
-		if ($wait)
-		{
-			print " --- Waiting for clear...";
-			if ($record) { print $recording; }
-			my $waitlevel = 0;
-			my $logprint = 1;
-			my $lastsignal = 0;
+        if ($wait) {
+            print " --- Waiting for clear...";
+            if ($record) { print $recording; }
+            my $waitlevel  = 0;
+            my $logprint   = 1;
+            my $lastsignal = 0;
 
-			while ($waitlevel > $delaylevel || $lastsignal < $delaytime)
-			{
-				Time::HiRes::sleep($levelwait);
-				$t->print("l");
-				my $prematch;
-				($prematch, $waitlevel) = $t->waitfor(Match => '/-{0,1}\d+\.\d/', Timeout => 5, Errmode => "return"); 
+            while ( $waitlevel > $delaylevel || $lastsignal < $delaytime ) {
+                Time::HiRes::sleep($levelwait);
+                $t->print("l");
+                my $prematch;
+                ( $prematch, $waitlevel ) = $t->waitfor(
+                    Match   => '/-{0,1}\d+\.\d/',
+                    Timeout => 5,
+                    Errmode => "return"
+                );
 
-				# Only print to screen when signal is good
-				if ($waitlevel > $delaylevel)
-				{
-					print ":";
-				}
+                # Only print to screen when signal is good
+                if ( $waitlevel > $delaylevel ) {
+                    print ":";
+                }
 
-				# Only print to log when signal is good and logprint is set
-				if ($logprint && $waitlevel > $delaylevel)
-				{
-					logfile("Recording Started: " . prettyfreq($freq) . " level " . $waitlevel . "\n");
-					$logprint = 0;
-				}
+                # Only print to log when signal is good and logprint is set
+                if ( $logprint && $waitlevel > $delaylevel ) {
+                    logfile(  "Recording Started: "
+                            . prettyfreq($freq)
+                            . " level "
+                            . $waitlevel
+                            . "\n" );
+                    $logprint = 0;
+                }
 
-				# Track how long we haven't seen a signal so we can wait up to $delaytime seconds before ending recording
-				if ($waitlevel > $delaylevel)
-				{
-					$lastsignal = 0;
-				}
-				else
-				{
-					# Only print to the log the first time we lose signal
-					if ($lastsignal eq 0)
-					{
-						logfile("Signal lost: " . prettyfreq($freq) . " level " . $waitlevel . "\n");
-						$logprint = 1;
-					}
-					$lastsignal = $lastsignal + $levelwait;
-					print ".";
-				}
-			}
-			print "\n";
-		}
-		elsif ($stop)
-		{
-			print " --- Hit enter to continue..";
-			if ($record) { print $recording; }
-			<STDIN>;
-		}
-		else
-		{
-			print " --- Signal detected, waiting...";
-			if ($record) { print $recording; }
-			print "\n";
-			Time::HiRes::sleep($delaytime);
-		}
+# Track how long we haven't seen a signal so we can wait up to $delaytime seconds before ending recording
+                if ( $waitlevel > $delaylevel ) {
+                    $lastsignal = 0;
+                }
+                else {
+                    # Only print to the log the first time we lose signal
+                    if ( $lastsignal eq 0 ) {
+                        logfile(  "Signal lost: "
+                                . prettyfreq($freq)
+                                . " level "
+                                . $waitlevel
+                                . "\n" );
+                        $logprint = 1;
+                    }
+                    $lastsignal = $lastsignal + $levelwait;
+                    print ".";
+                }
+            }
+            print "\n";
+        }
+        elsif ($stop) {
+            print " --- Hit enter to continue..";
+            if ($record) { print $recording; }
+            <STDIN>;
+        }
+        else {
+            print " --- Signal detected, waiting...";
+            if ($record) { print $recording; }
+            print "\n";
+            Time::HiRes::sleep($delaytime);
+        }
 
-		# Stop recording
-		if ($record)
-		{
-			$recordtime = $recordtime + time - $recordstart;
-			my $thisrecordtime = time - $recordstart;
-			logfile("Recording Ended: " . prettyfreq($freq) . " [" . $thisrecordtime . " seconds]\n");
-			$t->print("LOS");
-			$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
-		}
-	}
-	else
-	{
-		Time::HiRes::sleep($pause - $levelwait);
-		if ($monitor) { print "\r"; }
-		else { print "\n"; }
-	}
+        # Stop recording
+        if ($record) {
+            $recordtime = $recordtime + time - $recordstart;
+            my $thisrecordtime = time - $recordstart;
+            logfile(  "Recording Ended: "
+                    . prettyfreq($freq) . " ["
+                    . $thisrecordtime
+                    . " seconds]\n" );
+            $t->print("LOS");
+            $t->waitfor(
+                Match   => '/RPRT/',
+                Timeout => 5,
+                Errmode => "return"
+            );
+        }
+    }
+    else {
+        Time::HiRes::sleep( $pause - $levelwait );
+        if   ($monitor) { print "\r"; }
+        else            { print "\n"; }
+    }
 }
 
 # Load CSV file
-sub loadcsv($)
-{
-	my ($freq) = (@_);
-	my $skiptune = 0;
-	my $nametest = 0;
-	unless (-e "$csv")
-	{
-		die "Bookmark file does not exist:  $csv\n";
-	}
-	open(my $csvfile, "<$csv");
-	while (my $line = <$csvfile>)
-	{
-		chomp ($line);
-		my ($hz,$mode,,$name) = split(',',$line);
+sub loadcsv($) {
+    my ($freq)   = (@_);
+    my $skiptune = 0;
+    my $nametest = 0;
+    unless ( -e "$csv" ) {
+        die "Bookmark file does not exist:  $csv\n";
+    }
+    open( my $csvfile, "<$csv" );
+    while ( my $line = <$csvfile> ) {
+        chomp($line);
+        my ( $hz, $mode,, $name ) = split( ',', $line );
 
-		# Make line consistent with gqrxcsv file lines
-		$line = $hz . "," . $mode . "," . "" . "," . "" . "," . $name;
-		push(@csv, $line);
+        # Make line consistent with gqrxcsv file lines
+        $line = $hz . "," . $mode . "," . "" . "," . "" . "," . $name;
+        push( @csv, $line );
 
-		# Get our max name length so our listing is dynamic
-		if (length($name) > $nametest) { $nametest = length($name); }
+        # Get our max name length so our listing is dynamic
+        if ( length($name) > $nametest ) { $nametest = length($name); }
 
-		# See if our passed-in frequency is valid to allow resuming
-		if ($hz eq $freq) { $skiptune = 1; }
-	}
-	close($csvfile);
-	if ($nametest <= $namewidth) { $namewidth = $nametest; }
-	my $csvlines = @csv;
-	print "Loaded $csvlines lines from CSV file\n\n";
-	if ($sort) { sortcsv(); }
-	return $skiptune;
+        # See if our passed-in frequency is valid to allow resuming
+        if ( $hz eq $freq ) { $skiptune = 1; }
+    }
+    close($csvfile);
+    if ( $nametest <= $namewidth ) { $namewidth = $nametest; }
+    my $csvlines = @csv;
+    print "Loaded $csvlines lines from CSV file\n\n";
+    if ($sort) { sortcsv(); }
+    return $skiptune;
 }
 
 # Load GQRX CSV file
-sub loadgqrxcsv($)
-{
-	my ($freq) = (@_);
-	my $skiptune = 0;
-	my $nametest = 0;
-	unless (-e "$gqrxcsv")
-	{
-		die "GQRX Bookmark file does not exist:  $gqrxcsv\n";
-	}
-	open(my $csvfile, "<$gqrxcsv");
-	while (my $line = <$csvfile>)
-	{
-		chomp ($line);
-		my ($hz,$name,$mode,$bw,$linetags) = split(';',$line);
+sub loadgqrxcsv($) {
+    my ($freq)   = (@_);
+    my $skiptune = 0;
+    my $nametest = 0;
+    unless ( -e "$gqrxcsv" ) {
+        die "GQRX Bookmark file does not exist:  $gqrxcsv\n";
+    }
+    open( my $csvfile, "<$gqrxcsv" );
+    while ( my $line = <$csvfile> ) {
+        chomp($line);
+        my ( $hz, $name, $mode, $bw, $linetags ) = split( ';', $line );
 
-		# Clean up spaces around info
-		$hz =~ s/^\s+|\s+$//g;
+        # Clean up spaces around info
+        $hz =~ s/^\s+|\s+$//g;
 
-		# We only care if freq is numeric, ignore the other lines
-		if ($hz =~ /^(\d+)$/)
-		{
-			$name =~ s/^\s+|\s+$//g;
-			$mode =~ s/^\s+|\s+$//g;
-			$bw =~ s/^\s+|\s+$//g;
-			$linetags =~ s/^\s+|\s+$//g;
+        # We only care if freq is numeric, ignore the other lines
+        if ( $hz =~ /^(\d+)$/ ) {
+            $name =~ s/^\s+|\s+$//g;
+            $mode =~ s/^\s+|\s+$//g;
+            $bw =~ s/^\s+|\s+$//g;
+            $linetags =~ s/^\s+|\s+$//g;
 
-			if ($linetags ne "")
-			{
-				$linetags =~ s/,/|/g;
-			}
-			else
-			{
-				$linetags = "EMPTY";
-			}
+            if ( $linetags ne "" ) {
+                $linetags =~ s/,/|/g;
+            }
+            else {
+                $linetags = "EMPTY";
+            }
 
-			my $cleanmode = cleanmode($mode);
-			my $pushline = $hz . "," . $cleanmode . "," . $linetags . "," . $bw . "," . $name;
-			push(@csv, $pushline);
+            my $cleanmode = cleanmode($mode);
+            my $pushline
+                = $hz . ","
+                . $cleanmode . ","
+                . $linetags . ","
+                . $bw . ","
+                . $name;
+            push( @csv, $pushline );
 
-			# Get our max name length so our listing is dynamic
-			if (length($name) > $nametest) { $nametest = length($name); }
+            # Get our max name length so our listing is dynamic
+            if ( length($name) > $nametest ) { $nametest = length($name); }
 
-			# See if our passed-in frequency is valid to allow resuming
-			if ($hz eq $freq) { $skiptune = 1; }
-		}
+            # See if our passed-in frequency is valid to allow resuming
+            if ( $hz eq $freq ) { $skiptune = 1; }
+        }
 
-	}
-	close($csvfile);
-	if ($nametest <= $namewidth) { $namewidth = $nametest; }
-	my $csvlines = @csv;
-	print "Loaded $csvlines lines from GQRX CSV file\n\n";
-	if ($sort) { sortcsv(); }
-	return $skiptune;
+    }
+    close($csvfile);
+    if ( $nametest <= $namewidth ) { $namewidth = $nametest; }
+    my $csvlines = @csv;
+    print "Loaded $csvlines lines from GQRX CSV file\n\n";
+    if ($sort) { sortcsv(); }
+    return $skiptune;
 }
 
-sub cleanmode($)
-{
-	my ($mode) = (@_);
-	my $cleanmode = $gqrxmodes{$mode};
-	if ($cleanmode eq "")
-	{
-		print "Unknown mode: [$mode]\n";
-	}
-	return $cleanmode;
+sub cleanmode($) {
+    my ($mode) = (@_);
+    my $cleanmode = $gqrxmodes{$mode};
+    if ( $cleanmode eq "" ) {
+        print "Unknown mode: [$mode]\n";
+    }
+    return $cleanmode;
 }
 
 # Return back ##.### ### format readable frequency string
-sub prettyfreq($)
-{
-	my ($freq) = (@_);
-	chomp($freq);
-	my $subfreq = substr($freq, -3);
-	my $mainfreq = substr($freq, 0, length($freq)-3);
-	$mainfreq = sprintf("%.3f", $mainfreq / 1000);
-	return "$mainfreq $subfreq";
+sub prettyfreq($) {
+    my ($freq) = (@_);
+    chomp($freq);
+    my $subfreq = substr( $freq, -3 );
+    my $mainfreq = substr( $freq, 0, length($freq) - 3 );
+    $mainfreq = sprintf( "%.3f", $mainfreq / 1000 );
+    return "$mainfreq $subfreq";
 }
 
 # Print repeat header with some info
-sub repeatheader
-{
-	if ($monitor)
-	{
-		print "\n";
-	}
+sub repeatheader {
+    if ($monitor) {
+        print "\n";
+    }
 
-	printf("--- Scan: " . $c_g . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " - Most Active: " . $c_c . '%s' . $r . " (" . $c_c . '%s' . $r . ") - Record: " . $c_m . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . $r . " (" . $c_m . '%s' . $r . ") ---\n",
-		secondstoreadable(time-$timestarted),
-		getactive(),
-		secondstoreadable($recordtime),
-		$recordcount
-	);
+    printf(
+        "--- Scan: "
+            . $c_g . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s'
+            . $r
+            . " - Most Active: "
+            . $c_c . '%s'
+            . $r . " ("
+            . $c_c . '%s'
+            . $r
+            . ") - Record: "
+            . $c_m . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s'
+            . $r . " ("
+            . $c_m . '%s'
+            . $r
+            . ") ---\n",
+        secondstoreadable( time - $timestarted ), getactive(),
+        secondstoreadable($recordtime),           $recordcount
+    );
 
-	my $logline = sprintf("Time Scanning: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Most Active: " . '%s' . " (" . '%s' . ") - Time Recording: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":" . '%02s' . " - Recordings: " . '%s' . " (" . '%s' . ")\n",
-		secondstoreadable(time-$timestarted),
-		getactive(),
-		secondstoreadable($recordtime),
-		$recordcount,
-		($record) ? "Enabled" : "Disabled"
-	);
-	if ((time - $lastlogheader) > $logheader)
-	{
-		logfile($logline);
-		$lastlogheader = time;
-	}
+    my $logline = sprintf(
+        "Time Scanning: " . '%02s' . ":" . '%02s' . ":" . '%02s' . ":"
+            . '%02s'
+            . " - Most Active: " . '%s' . " (" . '%s'
+            . ") - Time Recording: " . '%02s' . ":" . '%02s' . ":" . '%02s'
+            . ":" . '%02s'
+            . " - Recordings: " . '%s' . " (" . '%s' . ")\n",
+        secondstoreadable( time - $timestarted ), getactive(),
+        secondstoreadable($recordtime),           $recordcount,
+        ($record) ? "Enabled" : "Disabled"
+    );
+    if ( ( time - $lastlogheader ) > $logheader ) {
+        logfile($logline);
+        $lastlogheader = time;
+    }
 
-	if ($monitor)
-	{
-		print "\033[2A";
-	}
+    if ($monitor) {
+        print "\033[2A";
+    }
 }
 
 # Test our logging path and update to tmp if we have to
-sub testlog
-{
+sub testlog {
 
-	open TEST, ">>$logfile" or do
-	{
-		my $oldlogfile = $logfile;
-		$logfile = $tmplogpath . $logfilename;
-		print "Can't write to $oldlogfile, logging to " . $logfile . "\n";
-	}
+    open TEST, ">>$logfile" or do {
+        my $oldlogfile = $logfile;
+        $logfile = $tmplogpath . $logfilename;
+        print "Can't write to $oldlogfile, logging to " . $logfile . "\n";
+        }
 }
 
 # Log to our logfile
-sub logfile($)
-{
-	my ($logline) = (@_);
-	open(LOGFILE,">>$logfile");
-	my $timestamp = logtimestamp();
-	print LOGFILE $timestamp . " -- " . $logline;
-	close(LOGFILE);
+sub logfile($) {
+    my ($logline) = (@_);
+    open( LOGFILE, ">>$logfile" );
+    my $timestamp = logtimestamp();
+    print LOGFILE $timestamp . " -- " . $logline;
+    close(LOGFILE);
 }
 
 # Convert seconds to human readable time
-sub secondstoreadable($)
-{
-	my ($seconds) = (@_);
-	my $days = int($seconds/(24*60*60));
-	my $hours = ($seconds/(60*60))%24;
-	my $mins = ($seconds/60)%60;
-	my $secs = $seconds%60;
-	return ($days, $hours, $mins, $secs);
+sub secondstoreadable($) {
+    my ($seconds) = (@_);
+    my $days = int( $seconds / ( 24 * 60 * 60 ) );
+    my $hours = ( $seconds / ( 60 * 60 ) ) % 24;
+    my $mins  = ( $seconds / 60 ) % 60;
+    my $secs  = $seconds % 60;
+    return ( $days, $hours, $mins, $secs );
 }
 
 # Add channel to active
-sub addactive($)
-{
-	my ($freq) = (@_);
-	my $found = 0;
-	foreach my $key (keys %mostactive)
-	{
-		if ($freq eq $key)
-		{
-			$mostactive{$key}++;
-			$found++;
-		}
-	}
-	unless ($found) { $mostactive{$freq} = 1; }
+sub addactive($) {
+    my ($freq) = (@_);
+    my $found = 0;
+    foreach my $key ( keys %mostactive ) {
+        if ( $freq eq $key ) {
+            $mostactive{$key}++;
+            $found++;
+        }
+    }
+    unless ($found) { $mostactive{$freq} = 1; }
 }
 
 # Retrieve the most active frequency
-sub getactive
-{
-	my $freq = "na";
-	my $count = 0;
-	foreach my $key (keys %mostactive)
-	{
-		if ($mostactive{$key} > $count)
-		{
-		 	$freq = $key;
-			$count = $mostactive{$key};
-		}
+sub getactive {
+    my $freq  = "na";
+    my $count = 0;
+    foreach my $key ( keys %mostactive ) {
+        if ( $mostactive{$key} > $count ) {
+            $freq  = $key;
+            $count = $mostactive{$key};
+        }
 
-	}
-	unless ($freq eq "na") { $freq = prettyfreq($freq); }
-	return ($freq, $count);
+    }
+    unless ( $freq eq "na" ) { $freq = prettyfreq($freq); }
+    return ( $freq, $count );
 }
 
 # Get a pretty timestamp for our logfile
-sub logtimestamp
-{
-	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
-	my $nice_timestamp = sprintf('%04d' . "-" . '%02d' . "-" . '%02d' . " " . '%02d' . ":" . '%02d' . ":" . '%02d',
-		$year+1900,$mon+1,$mday,$hour,$min,$sec);
+sub logtimestamp {
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst )
+        = localtime(time);
+    my $nice_timestamp = sprintf(
+        '%04d' . "-" . '%02d' . "-" . '%02d' . " " . '%02d' . ":" . '%02d'
+            . ":" . '%02d',
+        $year + 1900,
+        $mon + 1, $mday, $hour, $min, $sec
+    );
 
-	return $nice_timestamp;
+    return $nice_timestamp;
 }
 
 # Make sure we stop recording if we exit
-sub signal_handler
-{
-	print "\e[K";
-	print "\n\nDisabling recording and exiting on signal: $!\n";
-	$t->print("LOS");
-	$t->waitfor(Match => '/RPRT/', Timeout => 5, Errmode => "return"); 
-	logfile("Stopped scanning\n");
-	exit;
+sub signal_handler {
+    print "\e[K";
+    print "\n\nDisabling recording and exiting on signal: $!\n";
+    $t->print("LOS");
+    $t->waitfor( Match => '/RPRT/', Timeout => 5, Errmode => "return" );
+    logfile("Stopped scanning\n");
+    exit;
 }
 
 # Load default config file
-sub loaddefaultconfig()
-{
-	# If we have a default config file, load it
-	if (-e $defaultconfigfile)
-	{
-		print "Loading default config file $defaultconfigfile\n\n";
-		require $defaultconfigfile;
-	}
-	else
-	{
-		print "No default config file found..\n\n";
-	}
+sub loaddefaultconfig() {
+
+    # If we have a default config file, load it
+    if ( -e $defaultconfigfile ) {
+        print "Loading default config file $defaultconfigfile\n\n";
+        require $defaultconfigfile;
+    }
+    else {
+        print "No default config file found..\n\n";
+    }
 }
 
 # Load user-specified config file
-sub loadconfig()
-{
-	# If we have a config file parameter passed, load that config file if it exists
-	if ($config)
-	{
-		if (-e $config)
-		{
-			print "Loading config file $config\n\n";
-			require $config;
-		}
-		else
-		{
-			print "Config file $config does not exist, exiting...\n\n";
-			exit;
-		}
-	}
+sub loadconfig() {
+
+# If we have a config file parameter passed, load that config file if it exists
+    if ($config) {
+        if ( -e $config ) {
+            print "Loading config file $config\n\n";
+            require $config;
+        }
+        else {
+            print "Config file $config does not exist, exiting...\n\n";
+            exit;
+        }
+    }
 }
 
 # Check command line usage is sane and print some info
-sub checkusage
-{
-	if ($help)
-	{
-		usage();
-	}
+sub checkusage {
+    if ($help) {
+        usage();
+    }
 
-	if ($csvfilename)
-	{
-		if (-e $csvfilename)
-		{
-			$csv = $csvfilename;
-			print "Using generic CSV file:  " . $csv . "\n\n";
-		}
-		else
-		{
-			print "Specified csvfile does not exist, using default: " . $csv . "\n\n";
-		}
-	}
+    if ($csvfilename) {
+        if ( -e $csvfilename ) {
+            $csv = $csvfilename;
+            print "Using generic CSV file:  " . $csv . "\n\n";
+        }
+        else {
+            print "Specified csvfile does not exist, using default: " . $csv
+                . "\n\n";
+        }
+    }
 
-	if ($gqrxcsvfilename)
-	{
-		if (-e $gqrxcsvfilename)
-		{
-			$gqrxcsv = $gqrxcsvfilename;
-			print "Using GQRX CSV file:  " . $gqrxcsv . "\n\n";
-		}
-		else
-		{
-			print "Specified csvfile does not exist, using default: " . $gqrxcsv . "\n\n";
-		}
-	}
+    if ($gqrxcsvfilename) {
+        if ( -e $gqrxcsvfilename ) {
+            $gqrxcsv = $gqrxcsvfilename;
+            print "Using GQRX CSV file:  " . $gqrxcsv . "\n\n";
+        }
+        else {
+            print "Specified csvfile does not exist, using default: "
+                . $gqrxcsv . "\n\n";
+        }
+    }
 
-	# Convert exclude argument to array, including sci notation
-	if ($exclude)
-	{
-		my @tmp = split(',',$exclude);
+    # Convert exclude argument to array, including sci notation
+    if ($exclude) {
+        my @tmp = split( ',', $exclude );
 
-		foreach(@tmp)
-		{
-			my $tmp = $_;
-			# If this is a frequency like 28.4e6, convert it to hz
-			if ($tmp =~ /\d+e/)
+        foreach (@tmp) {
+            my $tmp = $_;
 
-			{
-				$tmp = sprintf("%.10g", $_);
-			}
-			push(@exclude,$tmp);
-		}
-	}
+            # If this is a frequency like 28.4e6, convert it to hz
+            if ( $tmp =~ /\d+e/ )
 
-	if ($delaylevel > 0) { usage("delaylevel"); }
+            {
+                $tmp = sprintf( "%.10g", $_ );
+            }
+            push( @exclude, $tmp );
+        }
+    }
 
-	# Tags are not valid in generic CSV file mode
-	if ($type eq "file")
-	{
-		if ($tags ne "") { usage($type); }
-		if ($sort) { usage($type); }
-	}
+    if ( $delaylevel > 0 ) { usage("delaylevel"); }
 
-	if ($type eq "file" || $type eq "gqrxfile")
-	{
-		# Accept --channels or --channel as argument for channels
+    # Tags are not valid in generic CSV file mode
+    if ( $type eq "file" ) {
+        if ( $tags ne "" ) { usage($type); }
+        if ($sort)         { usage($type); }
+    }
 
-		if ($channels ne "" && $channel == "") { $channel = $channels; }
+    if ( $type eq "file" || $type eq "gqrxfile" ) {
 
-		if ($channel ne "" && $pattern) { usage($type); }
+        # Accept --channels or --channel as argument for channels
 
-		if ($channel ne "" && $tags) { usage($type); }
+        if ( $channels ne "" && $channel == "" ) { $channel = $channels; }
 
-		# If monitor mode, we're only monitoring one channel
-		if ($monitor)
-		{
-			my @foo;
-			($channel,@foo) = split(',',$channel);
-			if ($channel =~ /-/)
-			{
-				($channel,@foo) = split('-',$channel);
-			}
-		}
+        if ( $channel ne "" && $pattern ) { usage($type); }
 
-		# Convert comma separated tags argument to array
-		@tags = split('\|',$tags);
+        if ( $channel ne "" && $tags ) { usage($type); }
 
-		# Convert channel argument to array
-		# Comma saparated list of channels or dash separated range
-		my @tmpchannels = split(',',$channel);
-		foreach(@tmpchannels)
-		{
-			# If it has a - in it, it's a range, break it apart
-			if ($_ =~ /-/)
-			{       
-			        my ($first,$last) = split('-',$_);
-				for (my $i=$first; $i <= $last; $i++)
-				{       
-					push(@channels,$i);
-				}
-			}
-			else
-			{               
-				push(@channels,$_);
-			}
-		}
+        # If monitor mode, we're only monitoring one channel
+        if ($monitor) {
+            my @foo;
+            ( $channel, @foo ) = split( ',', $channel );
+            if ( $channel =~ /-/ ) {
+                ( $channel, @foo ) = split( '-', $channel );
+            }
+        }
 
-		if (@channels)
-		{
-			print "Starting in $type mode scanning for channels: ";
-			foreach(@channels) { print "$_ "; }
-			print "\n\n";
-		}
-		elsif ($pattern)
-		{
-			print "Starting in $type mode scanning for pattern: $pattern\n\n";
-		}
-		elsif ($tags)
-		{
-			print "Starting in $type mode scanning for tags: $tags\n\n";
-		}
-		else
-		{
-			print "Starting in $type mode scanning all channels\n\n";
-		}
-	}
-	elsif ($type eq "scan")
-	{
-		if ($start eq "" || $end eq "" || $mode eq "") { usage($type); }
+        # Convert comma separated tags argument to array
+        @tags = split( '\|', $tags );
 
-		# Require a valid mode
-		$mode = uc($mode);
-		unless (grep(/$mode/, @modes))
-		{
-			print "Mode is invalid:  [$mode]\n\nAvailable modes:  ";
-			foreach(@modes) { print "$_ "; }
-			print "\n";
-			exit;
-		}
+        # Convert channel argument to array
+        # Comma saparated list of channels or dash separated range
+        my @tmpchannels = split( ',', $channel );
+        foreach (@tmpchannels) {
 
-		# Start has to be bigger than end
-		if ($end < $start)
-		{
-			die "$end is less than $start\n";
-		}
-		unless ($delaylevel =~ /-.*/)
-		{
-			die "Invalid signal strength:  [$delaylevel]\n";
-		}
+            # If it has a - in it, it's a range, break it apart
+            if ( $_ =~ /-/ ) {
+                my ( $first, $last ) = split( '-', $_ );
+                for ( my $i = $first; $i <= $last; $i++ ) {
+                    push( @channels, $i );
+                }
+            }
+            else {
+                push( @channels, $_ );
+            }
+        }
 
-		# Expand our frequencies if we passed in scientific notation
-		$start = sprintf("%.10g", $start);
-		$end = sprintf("%.10g", $end);
+        if (@channels) {
+            print "Starting in $type mode scanning for channels: ";
+            foreach (@channels) { print "$_ "; }
+            print "\n\n";
+        }
+        elsif ($pattern) {
+            print "Starting in $type mode scanning for pattern: $pattern\n\n";
+        }
+        elsif ($tags) {
+            print "Starting in $type mode scanning for tags: $tags\n\n";
+        }
+        else {
+            print "Starting in $type mode scanning all channels\n\n";
+        }
+    }
+    elsif ( $type eq "scan" ) {
+        if ( $start eq "" || $end eq "" || $mode eq "" ) { usage($type); }
 
-		my $startfreq = prettyfreq($start);
-		my $endfreq = prettyfreq($end);
+        # Require a valid mode
+        $mode = uc($mode);
+        unless ( grep( /$mode/, @modes ) ) {
+            print "Mode is invalid:  [$mode]\n\nAvailable modes:  ";
+            foreach (@modes) { print "$_ "; }
+            print "\n";
+            exit;
+        }
 
-		print "Starting in $type mode from $startfreq to $endfreq in $mode mode\n";
-		print "Signal level delay level of $delaylevel waiting for " . $delaytime . "s\n\n";
-	}
-	elsif ($config || -e $defaultconfigfile)
-	{
-		# do nothing, we'll try to load a config file
-	}
-	else
-	{
-		usage();
-	}
+        # Start has to be bigger than end
+        if ( $end < $start ) {
+            die "$end is less than $start\n";
+        }
+        unless ( $delaylevel =~ /-.*/ ) {
+            die "Invalid signal strength:  [$delaylevel]\n";
+        }
+
+        # Expand our frequencies if we passed in scientific notation
+        $start = sprintf( "%.10g", $start );
+        $end   = sprintf( "%.10g", $end );
+
+        my $startfreq = prettyfreq($start);
+        my $endfreq   = prettyfreq($end);
+
+        print
+            "Starting in $type mode from $startfreq to $endfreq in $mode mode\n";
+        print "Signal level delay level of $delaylevel waiting for "
+            . $delaytime . "s\n\n";
+    }
+    elsif ( $config || -e $defaultconfigfile ) {
+
+        # do nothing, we'll try to load a config file
+    }
+    else {
+        usage();
+    }
 }
 
 # Print a header of some options we've selected
-sub header
-{
-	if ($dumpchannels)
-	{
-		print "Dumping channel list and exiting\n\n";
-	}
+sub header {
+    if ($dumpchannels) {
+        print "Dumping channel list and exiting\n\n";
+    }
 
-	if ($levelstop)
-	{
-		if ($wait)
-		{
-			print "On detection of signal will wait until channel is clear\n\n";
-		}
+    if ($levelstop) {
+        if ($wait) {
+            print
+                "On detection of signal will wait until channel is clear\n\n";
+        }
 
-		if ($stop)
-		{
-			print "On detection of signal will wait for keyboard input\n\n";
-		}
-	}
-	else
-	{
-		print "Not stopping for signal detection\n\n";
-	}
+        if ($stop) {
+            print "On detection of signal will wait for keyboard input\n\n";
+        }
+    }
+    else {
+        print "Not stopping for signal detection\n\n";
+    }
 
-	if ($channels && $sort)
-	{
-		print "Warning:  Sorted list with channel mode, channels might be out of order you expect\n\n";
-	}
+    if ( $channels && $sort ) {
+        print
+            "Warning:  Sorted list with channel mode, channels might be out of order you expect\n\n";
+    }
 
-	print "Channel/Frequency pause time:  " . $pause . "s\n";
-	print "Delaylevel: [$delaylevel]  Delaytime: [$delaytime]\n\n";
+    print "Channel/Frequency pause time:  " . $pause . "s\n";
+    print "Delaylevel: [$delaylevel]  Delaytime: [$delaytime]\n\n";
 }
 
 # Sideband warning
-sub checksideband
-{
-	my ($freq, $mode) = (@_);
-	if ( ($freq < 7.3e6 && uc($mode) eq "USB") ||
-	     ($freq > 7.3e6 && uc($mode) eq "LSB")
-	    )
-	{
-		print "Warning:  Sideband mode selected may be incorrect\n";
-	}
+sub checksideband {
+    my ( $freq, $mode ) = (@_);
+    if (   ( $freq < 7.3e6 && uc($mode) eq "USB" )
+        || ( $freq > 7.3e6 && uc($mode) eq "LSB" ) )
+    {
+        print "Warning:  Sideband mode selected may be incorrect\n";
+    }
 }
 
 # Sort CSV alphabetically
-sub sortcsv
-{
-	print "Sorting CSV file\n";
-	my (@names,@sortedcsv);
-	foreach(@csv)
-	{
-		my ($freq,$mode,$linetags,$bw,@name) = split(',',$_);
-		push(@names, @name);
-	}
+sub sortcsv {
+    print "Sorting CSV file\n";
+    my ( @names, @sortedcsv );
+    foreach (@csv) {
+        my ( $freq, $mode, $linetags, $bw, @name ) = split( ',', $_ );
+        push( @names, @name );
+    }
 
-	my @sortednames = sort @names;
+    my @sortednames = sort @names;
 
-	foreach(@sortednames)
-	{
-		my $name = $_;
-		foreach(@csv)
-		{
-			my $line = $_;
-			my ($freq,$mode,$linetags,$bw,@name) = split(',',$line);
-			my $linename = join(' ',@name);
-			if ($linename eq $name)
-			{
-				push(@sortedcsv, $line);
-			}
-		}
-	}
+    foreach (@sortednames) {
+        my $name = $_;
+        foreach (@csv) {
+            my $line = $_;
+            my ( $freq, $mode, $linetags, $bw, @name ) = split( ',', $line );
+            my $linename = join( ' ', @name );
+            if ( $linename eq $name ) {
+                push( @sortedcsv, $line );
+            }
+        }
+    }
 
-	@csv = @sortedcsv;
+    @csv = @sortedcsv;
 }
 
 # Print connection error information and exit
-sub conerror
-{
-	my ($type,$line) = (@_);
-	if ($type eq "connect")
-	{
-		print "Unable to open connection to GQRX at line $line\n\n";
-	}
+sub conerror {
+    my ( $type, $line ) = (@_);
+    if ( $type eq "connect" ) {
+        print "Unable to open connection to GQRX at line $line\n\n";
+    }
 
-	if ($type eq "empty")
-	{
-		print "Unable to retrieve data from GQRX at line $line.\n\n";
-	}
+    if ( $type eq "empty" ) {
+        print "Unable to retrieve data from GQRX at line $line.\n\n";
+    }
 
-	print "Make sure TCP Remote is enabled and listening on $gqrxip and port $gqrxport\n";
-	print "Exiting..\n";
-	exit;
+    print
+        "Make sure TCP Remote is enabled and listening on $gqrxip and port $gqrxport\n";
+    print "Exiting..\n";
+    exit;
 }
 
 # Sanity check our usage and parameters
-sub usage
-{
-	my ($text) = (@_);
+sub usage {
+    my ($text) = (@_);
 
-	print "$0 - Control GQRX to scan.\n\n";
+    print "$0 - Control GQRX to scan.\n\n";
 
-	print "$0 --type [gqrxfile file scan] --help for mode help on each mode\n\n";
+    print
+        "$0 --type [gqrxfile file scan] --help for mode help on each mode\n\n";
 
-	print "All frequencies are given in Hz, but can be given in scientific notation\n";
-	print "if desired.  ie:  28.410e6 and 28410000 are equivalent.\n\n";
+    print
+        "All frequencies are given in Hz, but can be given in scientific notation\n";
+    print "if desired.  ie:  28.410e6 and 28410000 are equivalent.\n\n";
 
-	print "Config file operations:\n\n";
-	print "--config gmrs.pm		Load the config file gmrs.pm\n\n";
+    print "Config file operations:\n\n";
+    print "--config gmrs.pm		Load the config file gmrs.pm\n\n";
 
-	print "Scan mode operations:\n\n";
-	print "--start 28400000		Start at frequency 28.400\n";
-	print "--end 28410000 			Stop at frequency 28.410\n";
-	print "--mode USB			Scan in USB demodulation\n";
-	print "--step 250			Step by 250hz in frequency scanning mode (default: $step)\n\n";
+    print "Scan mode operations:\n\n";
+    print "--start 28400000		Start at frequency 28.400\n";
+    print "--end 28410000 			Stop at frequency 28.410\n";
+    print "--mode USB			Scan in USB demodulation\n";
+    print
+        "--step 250			Step by 250hz in frequency scanning mode (default: $step)\n\n";
 
-	print "GQRXFile / File mode options:\n\n";
-	print "--channels 19,20,30		Scan channels 19, 20, and 30\n";
-	print "--channels 19-30		Scan channels 19 through 30\n";
-	print "--pattern \"FRS|GMR|^145\"	Scan channels named FRS or GMR or frequencies starting with 145\n";
-	print "--tags \"2M|Air\"			Scan channels tagged using 2M or Air (requires using gqrx csv file)\n";
-	print "--sort				Alphabetically sort CSV file lines (over-ride config with --nosort)\n";
-	print "--showall			Show all channels even if skipped\n";
-	print "--dumpchannels			Show all channels, do not tune any\n\n";
+    print "GQRXFile / File mode options:\n\n";
+    print "--channels 19,20,30		Scan channels 19, 20, and 30\n";
+    print "--channels 19-30		Scan channels 19 through 30\n";
+    print
+        "--pattern \"FRS|GMR|^145\"	Scan channels named FRS or GMR or frequencies starting with 145\n";
+    print
+        "--tags \"2M|Air\"			Scan channels tagged using 2M or Air (requires using gqrx csv file)\n";
+    print
+        "--sort				Alphabetically sort CSV file lines (over-ride config with --nosort)\n";
+    print "--showall			Show all channels even if skipped\n";
+    print "--dumpchannels			Show all channels, do not tune any\n\n";
 
-	print "General scan or file options:\n\n";
-	print "--pause 2			Wait 2 seconds between frequencies/channels (default: $pause) or over-ride config with --nowait\n";
-	print "--exclude 28.401e6,28.410e6	Exclude frequency 28 401 and 28 410\n";
-	print "--monitor			Monitor a single frequency or channel (over-ride config with --nomonitor\n\n";
+    print "General scan or file options:\n\n";
+    print
+        "--pause 2			Wait 2 seconds between frequencies/channels (default: $pause) or over-ride config with --nowait\n";
+    print "--exclude 28.401e6,28.410e6	Exclude frequency 28 401 and 28 410\n";
+    print
+        "--monitor			Monitor a single frequency or channel (over-ride config with --nomonitor\n\n";
 
-	print "Signal detection options:\n\n";
-	print "--delaylevel=-30		Delay scanning if a signal of -30 or better is heard (default: $delaylevel)\n";
-	print "--delaytime 10			Delay scanning for 10s when a signal is detected (default: $delaytime)\n";
-	print "--record			Record when signal is detected (default: 0) or over-ride config with --norecord\n";
-	print "--stop				Stop scanning until the enter key is hit (default: 0) or over-ride config with --nostop\n";
-	print "--wait				Stop scanning until the channel is clear (default: 0)\n";
-	print "--levelstop=0			Do not pause to listen for signal (default: $levelstop)\n\n";
+    print "Signal detection options:\n\n";
+    print
+        "--delaylevel=-30		Delay scanning if a signal of -30 or better is heard (default: $delaylevel)\n";
+    print
+        "--delaytime 10			Delay scanning for 10s when a signal is detected (default: $delaytime)\n";
+    print
+        "--record			Record when signal is detected (default: 0) or over-ride config with --norecord\n";
+    print
+        "--stop				Stop scanning until the enter key is hit (default: 0) or over-ride config with --nostop\n";
+    print "--wait				Stop scanning until the channel is clear (default: 0)\n";
+    print
+        "--levelstop=0			Do not pause to listen for signal (default: $levelstop)\n\n";
 
-	print "Colorizing Options:\n\n";
-	print "--coloroutput		Colorize the output (default: $coloroutput) or over-ride config with --nocoloroutput\n";
-	print "--light			Use darker colors for a light theme terminal (default: 0) or over-ride config with --nolight\n";
+    print "Colorizing Options:\n\n";
+    print
+        "--coloroutput		Colorize the output (default: $coloroutput) or over-ride config with --nocoloroutput\n";
+    print
+        "--light			Use darker colors for a light theme terminal (default: 0) or over-ride config with --nolight\n";
 
-	if ($text eq "scan")
-	{
-		print "\n\nMode $text detected but missing required parameters\n\n";
-		unless ($start) { print "--start freq required\n"; }
-		unless ($end) { print "--end freq required\n"; }
-		unless ($mode) { print "--mode mode required\n"; }
-	}
+    if ( $text eq "scan" ) {
+        print "\n\nMode $text detected but missing required parameters\n\n";
+        unless ($start) { print "--start freq required\n"; }
+        unless ($end)   { print "--end freq required\n"; }
+        unless ($mode)  { print "--mode mode required\n"; }
+    }
 
-	if ($text eq "file")
-	{
-		print "\n\nMode $text detected but missing required parameters\n\n";
-		if ($channel && $pattern) { print "--channel and --pattern are exclusive options\n"; }
-		if ($tags) { print "--tags is not valid in generic CSV file mode\n"; }
-		if ($sort) { print "--sort is not valid in generic CSV file mode\n"; }
-	}
+    if ( $text eq "file" ) {
+        print "\n\nMode $text detected but missing required parameters\n\n";
+        if ( $channel && $pattern ) {
+            print "--channel and --pattern are exclusive options\n";
+        }
+        if ($tags) { print "--tags is not valid in generic CSV file mode\n"; }
+        if ($sort) { print "--sort is not valid in generic CSV file mode\n"; }
+    }
 
-	if ($text eq "gqrxfile")
-	{
-		print "\n\nMode $text detected but missing required parameters\n\n";
-		unless ($channel ne "" || $channels ne "" || $pattern || $tags) { print "--channels or --pattern or --tags required\n"; }
-		if ($channel && $pattern) { print "--channel and --pattern are exclusive options\n"; }
-		if ($channel && $tags) { print "--channel and --tags are exclusive options\n"; }
-	}
+    if ( $text eq "gqrxfile" ) {
+        print "\n\nMode $text detected but missing required parameters\n\n";
+        unless ( $channel ne "" || $channels ne "" || $pattern || $tags ) {
+            print "--channels or --pattern or --tags required\n";
+        }
+        if ( $channel && $pattern ) {
+            print "--channel and --pattern are exclusive options\n";
+        }
+        if ( $channel && $tags ) {
+            print "--channel and --tags are exclusive options\n";
+        }
+    }
 
-	if ($text eq "delaylevel")
-	{
-		print "\n\n--delaylevel must be less than or equal to 0\n\n";
-	}
+    if ( $text eq "delaylevel" ) {
+        print "\n\n--delaylevel must be less than or equal to 0\n\n";
+    }
 
-	exit;
+    exit;
 }
 
