@@ -60,7 +60,11 @@ my $home = $ENV{"HOME"};
 #$pattern = "14[6][7]";
 # In gqrxfile mode, what tag or tags to tune, separated by commas
 
-##$tags = "GMRS";
+## Tags to search for
+#$tags = "GMRS";
+
+## Maximum width of a channel name
+#$namewidth = 25;
 
 ## Sort channels as they are scanned (flag)
 #$sort = "1";
