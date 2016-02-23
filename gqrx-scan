@@ -13,6 +13,14 @@ use Time::HiRes;
 use Getopt::Long qw(GetOptionsFromArray);
 Getopt::Long::Configure('pass_through');
 
+# Warnings to fix
+# Use of uninitialized value $tmpfreq in scalar chomp at ./gqrx-scan line 258.
+# Use of uninitialized value $tmpfreq in string eq at ./gqrx-scan line 259.
+
+# Known issues
+# Name width limiting code should only account for ones we care about
+#  Would have to pull the matching code out into load and pass it back to tune
+
 # Check to see if we have the Term::ANSIColor module so it's not a hard requirement
 my $ansi = eval {
     require Term::ANSIColor;
@@ -239,7 +247,7 @@ my $t = new Net::Telnet(
 my $openresult = $t->open($gqrxip);
 
 # Make sure we were able to connect, or fail early
-if ( $openresult != 1 ) { conerror( 'connect', __LINE__ ); }
+if ( !defined($openresult) || $openresult != 1 ) { conerror( 'connect', __LINE__ ); }
 
 if ( $type eq 'file' || $type eq 'gqrxfile' ) {
     local $| = '1';
@@ -256,7 +264,7 @@ if ( $type eq 'file' || $type eq 'gqrxfile' ) {
         Errmode => 'return'
     );
     chomp($tmpfreq);
-    if ( $tmpfreq eq '' ) { conerror( 'empty', __LINE__ ); }
+    if ( defined($tmpfreq) && $tmpfreq eq '' ) { conerror( 'empty', __LINE__ ); }
     my $skiptune = '0';
 
     if ( $type eq 'file' ) {
@@ -417,7 +425,7 @@ if ( $type eq 'scan' ) {
         Errmode => 'return'
     );
     chomp($tmpfreq);
-    if ( $tmpfreq eq '' ) { conerror( 'empty', __LINE__ ); }
+    if ( defined($tmpfreq) && $tmpfreq eq '' ) { conerror( 'empty', __LINE__ ); }
     my $freq = $start;
 
     # If our current frequency is within our boundaries, start from there
