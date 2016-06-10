@@ -70,7 +70,7 @@ our $lastlogheader = '0';
 # Delay scanning if we hear a signal
 our $levelstop = '1';
 
-# Default Level that will cause a scanning delay
+# Default Level that will cause a scanning delay or recording of audio
 our $delaylevel = '-40';
 
 # Time to wait if signal is detected
@@ -247,7 +247,9 @@ my $t = new Net::Telnet(
 my $openresult = $t->open($gqrxip);
 
 # Make sure we were able to connect, or fail early
-if ( !defined($openresult) || $openresult != 1 ) { conerror( 'connect', __LINE__ ); }
+if ( !defined($openresult) || $openresult != 1 ) {
+    conerror( 'connect', __LINE__ );
+}
 
 if ( $type eq 'file' || $type eq 'gqrxfile' ) {
     local $| = '1';
@@ -264,7 +266,9 @@ if ( $type eq 'file' || $type eq 'gqrxfile' ) {
         Errmode => 'return'
     );
     chomp($tmpfreq);
-    if ( defined($tmpfreq) && $tmpfreq eq '' ) { conerror( 'empty', __LINE__ ); }
+    if ( defined($tmpfreq) && $tmpfreq eq '' ) {
+        conerror( 'empty', __LINE__ );
+    }
     my $skiptune = '0';
 
     if ( $type eq 'file' ) {
@@ -425,7 +429,9 @@ if ( $type eq 'scan' ) {
         Errmode => 'return'
     );
     chomp($tmpfreq);
-    if ( defined($tmpfreq) && $tmpfreq eq '' ) { conerror( 'empty', __LINE__ ); }
+    if ( defined($tmpfreq) && $tmpfreq eq '' ) {
+        conerror( 'empty', __LINE__ );
+    }
     my $freq = $start;
 
     # If our current frequency is within our boundaries, start from there
@@ -834,6 +840,23 @@ sub repeatheader {
         print "\n";
     }
 
+    # Create detailed statistic text if we're set to record
+    my $recordtext = '';
+
+    if ($record) {
+        $recordtext
+            = sprintf(
+            $c_m . '%02s' . ':' . '%02s' . ':' . '%02s' . ':' . '%02s'
+                . $r . ' ('
+                . $c_m . '%s'
+                . $r . ')',
+            secondstoreadable($recordtime), $recordcount );
+
+    }
+    else {
+        $recordtext = 'Disabled';
+    }
+
     printf(
         '--- Scan: '
             . $c_g . '%02s' . ':' . '%02s' . ':' . '%02s' . ':' . '%02s'
@@ -844,12 +867,10 @@ sub repeatheader {
             . $c_c . '%s'
             . $r
             . ') - Record: '
-            . $c_m . '%02s' . ':' . '%02s' . ':' . '%02s' . ':' . '%02s'
-            . $r . ' ('
-            . $c_m . '%s'
-            . $r . ') ---' . "\n",
-        secondstoreadable( time - $timestarted ), getactive(),
-        secondstoreadable($recordtime),           $recordcount
+            . $recordtext
+            . " ---\n",
+        secondstoreadable( time - $timestarted ),
+        getactive()
     );
 
     my $logline = sprintf(
@@ -1051,7 +1072,7 @@ sub checkusage {
     # Tags are not valid in generic CSV file mode
     if ( $type eq 'file' ) {
         if ( defined($tags) ) { usage($type); }
-        if ($sort) { usage($type); }
+        if ($sort)            { usage($type); }
     }
 
     if ( $type eq 'file' || $type eq 'gqrxfile' ) {
@@ -1125,7 +1146,9 @@ sub checkusage {
         }
     }
     elsif ( $type eq 'scan' ) {
-        if ( !defined($start) || !defined($end) || !defined($mode) ) { usage($type); }
+        if ( !defined($start) || !defined($end) || !defined($mode) ) {
+            usage($type);
+        }
 
         # Require a valid mode
         $mode = uc($mode);
@@ -1283,59 +1306,63 @@ sub usage {
     print "if desired.  ie:  28.410e6 and 28410000 are equivalent.\n\n";
 
     print "Config file operations:\n\n";
-    print "--config gmrs.pm		Load the config file gmrs.pm\n\n";
+    print "--config gmrs.pm     Load the config file gmrs.pm\n\n";
 
     print "Scan mode operations:\n\n";
-    print "--start 28400000		Start at frequency 28.400\n";
-    print "--end 28410000 			Stop at frequency 28.410\n";
-    print "--mode USB			Scan in USB demodulation\n";
-    print '--step 250			Step by 250hz in frequency scanning mode (default:'
+    print "--start 28400000     Start at frequency 28.400\n";
+    print "--end 28410000           Stop at frequency 28.410\n";
+    print "--mode USB           Scan in USB demodulation\n";
+    print
+        '--step 250           Step by 250hz in frequency scanning mode (default:'
         . $step . ")\n\n";
 
     print "GQRXFile / File mode options:\n\n";
-    print "--channels 19,20,30		Scan channels 19, 20, and 30\n";
-    print "--channels 19-30		Scan channels 19 through 30\n";
+    print "--channels 19,20,30      Scan channels 19, 20, and 30\n";
+    print "--channels 19-30     Scan channels 19 through 30\n";
     print
-        "--pattern \"FRS|GMR|^145\"	Scan channels named FRS or GMR or frequencies starting with 145\n";
+        "--pattern \"FRS|GMR|^145\" Scan channels named FRS or GMR or frequencies starting with 145\n";
     print
-        "--tags \"2M|Air\"			Scan channels tagged using 2M or Air (requires using gqrx csv file)\n";
+        "--tags \"2M|Air\"          Scan channels tagged using 2M or Air (requires using gqrx csv file)\n";
     print
-        "--sort				Alphabetically sort CSV file lines (over-ride config with --nosort)\n";
-    print "--showall			Show all channels even if skipped\n";
-    print "--dumpchannels			Show all channels, do not tune any\n\n";
+        "--sort             Alphabetically sort CSV file lines (over-ride config with --nosort)\n";
+    print "--showall            Show all channels even if skipped\n";
+    print "--dumpchannels           Show all channels, do not tune any\n\n";
 
     print "General scan or file options:\n\n";
     print
-        '--pause 2			Wait 2 seconds between frequencies/channels (default: '
+        '--pause 2          Wait 2 seconds between frequencies/channels (default: '
         . $pause
         . ") or over-ride config with --nowait\n";
-    print "--exclude 28.401e6,28.410e6	Exclude frequency 28 401 and 28 410\n";
     print
-        "--monitor			Monitor a single frequency or channel (over-ride config with --nomonitor\n\n";
+        "--exclude 28.401e6,28.410e6  Exclude frequency 28 401 and 28 410\n";
+    print
+        "--monitor          Monitor a single frequency or channel (over-ride config with --nomonitor\n\n";
 
     print "Signal detection options:\n\n";
     print
-        '--delaylevel=-30		Delay scanning if a signal of -30 or better is heard (default: '
+        '--delaylevel=-30       Delay scanning or record if a signal of -30 or better is heard (default: '
         . $delaylevel . ")\n";
     print
-        '--delaytime 10			Delay scanning for 10s when a signal is detected (default: '
+        '--delaytime 10         Delay scanning for 10s when a signal is detected (default: '
         . $delaytime . ")\n";
     print
-        "--record			Record when signal is detected (default: 0) or over-ride config with --norecord\n";
+        "--record           Record when signal is detected (default: 0) or over-ride config with --norecord\n";
     print
-        "--stop				Stop scanning until the enter key is hit (default: 0) or over-ride config with --nostop\n";
-    print "--wait				Stop scanning until the channel is clear (default: 0)\n";
-    print '--levelstop=0			Do not pause to listen for signal (default: '
+        "--stop             Stop scanning until the enter key is hit (default: 0) or over-ride config with --nostop\n";
+    print
+        "--wait               Stop scanning until the channel is clear (default: 0)\n";
+    print
+        '--levelstop=0            Do not pause to listen for signal (default: '
         . $levelstop . ")\n\n";
 
     print "Colorizing Options:\n\n";
-    print '--coloroutput		Colorize the output (default: '
+    print '--coloroutput        Colorize the output (default: '
         . $coloroutput
         . ") or over-ride config with --nocoloroutput\n";
     print
-        "--light			Use darker colors for a light theme terminal (default: 0) or over-ride config with --nolight\n";
+        "--light            Use darker colors for a light theme terminal (default: 0) or over-ride config with --nolight\n";
 
-    if ( $text eq 'scan' ) {
+    if ( defined($text) && $text eq 'scan' ) {
         print "\n\nMode " . $text
             . " detected but missing required parameters\n\n";
         unless ($start) { print "--start freq required\n"; }
@@ -1343,7 +1370,7 @@ sub usage {
         unless ($mode)  { print "--mode mode required\n"; }
     }
 
-    if ( $text eq 'file' ) {
+    if ( defined($text) && $text eq 'file' ) {
         print "\n\nMode " . $text
             . " detected but missing required parameters\n\n";
         if ( $channel && $pattern ) {
@@ -1353,7 +1380,7 @@ sub usage {
         if ($sort) { print "--sort is not valid in generic CSV file mode\n"; }
     }
 
-    if ( $text eq 'gqrxfile' ) {
+    if ( defined($text) && $text eq 'gqrxfile' ) {
         print "\n\nMode " . $text
             . " detected but missing required parameters\n\n";
         unless ( $channel ne "" || $channels ne "" || $pattern || $tags ) {
@@ -1367,7 +1394,7 @@ sub usage {
         }
     }
 
-    if ( $text eq 'delaylevel' ) {
+    if ( defined($text) && $text eq 'delaylevel' ) {
         print "\n\n--delaylevel must be less than or equal to 0\n\n";
     }
 

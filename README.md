@@ -99,7 +99,7 @@ ex:  --norecord
 ##### Signal detection options
 
   * --delaylevel=-30
-    * Delay scanning if a signal of -30 or better is heard
+    * Delay scanning or record if a signal of -30 or better is heard
     * Note that this argument requires the equal sign
   * --delaytime 10
     * Delay scanning for 10s when a signal is detected
