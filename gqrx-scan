@@ -29,7 +29,7 @@ my $ansi = eval {
 };
 
 # Handle all signals
-use sigtrap qw/handler signal_handler normal-signals/;
+use sigtrap qw/handler signalhandler normal-signals/;
 
 our $VERSION = '1.1';
 
@@ -87,7 +87,7 @@ our $step = '1000';
 my $clearscreen = '1';
 
 # Our maximum channel name width
-our $namewidth = '25';
+our $namewidth = '20';
 
 ### No need to touch below here
 
@@ -539,13 +539,25 @@ sub tune {
     }
 
     # Define the "recording" text once
-    my $recording = ' (' . $c_r . 'Recording' . $r . ')';
+    my $recording = ' (' . $c_r . 'Rec' . $r . ')';
 
     # Define the color for level here so we can make it stand out
     my $l = $c_g;
 
     # If we're seeing a stronger signal, highlight it
     if ($bestlevel) { $l = $c_r; }
+
+    # If we're in monitor mode, add the delaylevel to the status
+    my $delayleveltext = '';
+
+    if ( $monitor || $record ) {
+        my $dlcolor = $c_m;
+        if ( $level < $delaylevel ) {
+            $dlcolor = $c_r;
+        }
+
+        $delayleveltext = '[ ' . $c_m . $delaylevel . $r . ' ] ';
+    }
 
     if ( $type eq 'scan' ) {
         printf( '%12s'
@@ -564,10 +576,10 @@ sub tune {
                 . $l . '%5s'
                 . $r . ' / '
                 . $l . '%5s'
-                . $r
-                . '] [Line ' . '%3s' . ']',
+                . $r . '] ' . '%s'
+                . '[Line ' . '%3s' . ']',
             $curfreq, $name, $tunemode, $level, $bestsignal{$freq},
-            $fileline );
+            $delayleveltext, $fileline );
     }
 
     # If we're in monitor mode and want to record, do it here
@@ -854,7 +866,7 @@ sub repeatheader {
 
     }
     else {
-        $recordtext = 'Disabled';
+        $recordtext = $c_r . 'Disabled' . $r ;
     }
 
     printf(
@@ -979,7 +991,7 @@ sub logtimestamp {
 }
 
 # Make sure we stop recording if we exit
-sub signal_handler {
+sub signalhandler {
     print "\e[K";
     print "\n\nDisabling recording and exiting on signal: $!\n";
     $t->print('LOS');

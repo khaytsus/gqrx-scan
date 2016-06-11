@@ -169,6 +169,12 @@ Example:
 446000000,FM,440 Simplex<br>
 144200000,LSB,2m SSB Calling<br>
 
+### Recording Tips
+
+Be sure you set the GQRX LNA Gain to a sane, static value and not Hardware AGC or your recording won't be reliable.
+
+The squelch in GQRX must match the delaylevel or you might might miss recordings that GQRX is hearing or record noise after the transmission ends that GQRX would otherwise squelch.  Ideally set the squelch slightly more open in GQRX, example:  delaylevel equals -54, set GQRX to -60.  If you hear the recordings squelching too much during recording, tweak the GQRX squelch to open a little easier.
+
 ### Silent/Review Scripts
 
 This pair of scripts are provided to make cleaning up empty mp3 files created by record mode and reviewing them easier.  You will have to modify the paths that you store recordings and possibly tweak which tools you wish to use to review them.
