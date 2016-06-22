@@ -556,7 +556,7 @@ sub tune {
             $dlcolor = $c_r;
         }
 
-        $delayleveltext = '[ ' . $c_m . $delaylevel . $r . ' ] ';
+        $delayleveltext = '[' . $c_m . $delaylevel . $r . '] ';
     }
 
     if ( $type eq 'scan' ) {
