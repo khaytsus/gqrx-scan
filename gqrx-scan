@@ -499,6 +499,11 @@ sub tune {
     ) = @_;
     my $bestlevel = '0';
 
+    # If we see this, we determined the level to be invalid
+    my $emptylevel = '-150';
+    # If we see this, GQRX is probably not responding
+    my $deadlevel = '-200';
+
     unless ($recordingmonitor) {
         $recordstart = '0';
     }
@@ -520,11 +525,19 @@ sub tune {
             Timeout => '5',
             Errmode => 'return'
         );
-        chomp($level);
+
+        # Verify we got a $level populated and it's a sane value
+        if ( $level ne '' ) {
+            chomp($level);
+            if ( $level !~ /^-?\d+\.\d+$/ ) {
+                $level = $emptylevel;
+            }
+        }
+        else { $level = $emptylevel; }
     }
 
-    if ( $level <= -200 ) {
-        print "\nSignal Level at -200, GQRX may not be running\n";
+    if ( $level <= $deadlevel ) {
+        print "\nSignal Level at $deadlevel, GQRX may not be running\n";
     }
 
     # Store the best signal we've seen for this frequency
@@ -866,7 +879,7 @@ sub repeatheader {
 
     }
     else {
-        $recordtext = $c_r . 'Disabled' . $r ;
+        $recordtext = $c_r . 'Disabled' . $r;
     }
 
     printf(
