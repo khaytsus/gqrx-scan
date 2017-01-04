@@ -73,6 +73,10 @@ our $levelstop = '1';
 # Default Level that will cause a scanning delay or recording of audio
 our $delaylevel = '-40';
 
+# If we see level at this value, ignore it for stopping, recording, etc.  I see this value
+# sometimes scanning, even though nothing is there.
+our $ignorelevel = '0.0';
+
 # Time to wait if signal is detected
 our $delaytime = '5';
 
@@ -170,6 +174,7 @@ GetOptions(
     'tags=s'             => \$tags,
     'exclude=s'          => \$exclude,
     'delaylevel:s'       => \$delaylevel,
+    'ignorelevel:s'      => \$ignorelevel,
     'delaytime:f'        => \$delaytime,
     'pause:s'            => \$pause,
     'stop!'              => \$stop,
@@ -501,6 +506,7 @@ sub tune {
 
     # If we see this, we determined the level to be invalid
     my $emptylevel = '-150';
+
     # If we see this, GQRX is probably not responding
     my $deadlevel = '-200';
 
@@ -542,7 +548,7 @@ sub tune {
 
     # Store the best signal we've seen for this frequency
     if ( exists $bestsignal{$freq} ) {
-        if ( $bestsignal{$freq} < $level ) {
+        if ( $bestsignal{$freq} < $level && $level != $ignorelevel ) {
             $bestlevel = '1';
             $bestsignal{$freq} = $level;
         }
@@ -565,7 +571,7 @@ sub tune {
 
     if ( $monitor || $record ) {
         my $dlcolor = $c_m;
-        if ( $level < $delaylevel ) {
+        if ( $level < $delaylevel && $level != $ignorelevel ) {
             $dlcolor = $c_r;
         }
 
@@ -596,7 +602,12 @@ sub tune {
     }
 
     # If we're in monitor mode and want to record, do it here
-    if ( $level ne '' && $level > $delaylevel && $monitoring && $record ) {
+    if (   $level ne ''
+        && $level > $delaylevel
+        && $level != $ignorelevel
+        && $monitoring
+        && $record )
+    {
         $monitortime = time;
 
         if ( $recordingmonitor == 0 ) {
@@ -646,6 +657,7 @@ sub tune {
     if (   $levelstop
         && $level ne ''
         && $level > $delaylevel
+        && $level != $ignorelevel
         && $monitoring == 0 )
     {
         addactive($freq);
@@ -670,7 +682,9 @@ sub tune {
             my $logprint   = '1';
             my $lastsignal = '0';
 
-            while ( $waitlevel > $delaylevel || $lastsignal < $delaytime ) {
+            while ( ( $waitlevel > $delaylevel && $waitlevel != $ignorelevel )
+                || $lastsignal < $delaytime )
+            {
                 Time::HiRes::sleep($levelwait);
                 $t->print('l');
                 my $prematch;
@@ -1367,6 +1381,9 @@ sub usage {
     print
         '--delaylevel=-30       Delay scanning or record if a signal of -30 or better is heard (default: '
         . $delaylevel . ")\n";
+    print
+        '--ignorelevel=0.0      Level that we\'ll ignore a signal from for recording or stopping (default: '
+        . $ignorelevel . ")\n";
     print
         '--delaytime 10         Delay scanning for 10s when a signal is detected (default: '
         . $delaytime . ")\n";

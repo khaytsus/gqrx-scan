@@ -77,6 +77,9 @@ my $home = $ENV{"HOME"};
 ## Signal level at which to delay scanning to the next frequency if set to wait or stop or level at which to record
 #$delaylevel = "-40";
 
+# If we see level at this value, ignore it for stopping, recording, etc
+#our $ignorelevel = '0.0';
+
 ## Time in seconds which scanning waits before going to the next channel after signal detection
 #$delaytime = "5";
 

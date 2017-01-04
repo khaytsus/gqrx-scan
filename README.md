@@ -101,6 +101,9 @@ ex:  --norecord
   * --delaylevel=-30
     * Delay scanning or record if a signal of -30 or better is heard
     * Note that this argument requires the equal sign
+  * --ignorelevel=99
+    * Ignore any level that comes back as this value, such as invalid data
+    * Defaults to 0.0
   * --delaytime 10
     * Delay scanning for 10s when a signal is detected
   * --record
