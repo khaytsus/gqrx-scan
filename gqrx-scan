@@ -219,6 +219,15 @@ if ( $step < 100 ) { $step = '100'; }
 
 if ($monitor) { $levelstop = '0'; }
 
+# Initialize the color variables to empty (null)
+my $r   = "\0";
+my $c_r = "\0";
+my $c_g = "\0";
+my $c_c = "\0";
+my $c_m = "\0";
+my $c_b = "\0";
+my $c_y = "\0";
+
 # If we're colorizing, set our bold default
 if ( $coloroutput && $ansi ) {
     $r = RESET();
