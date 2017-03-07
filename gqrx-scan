@@ -51,7 +51,7 @@ our $csv     = '/opt/gqrx-remote/gqrx-bookmarks.csv';
 our $gqrxcsv = $home . '/.config/gqrx/bookmarks.csv';
 
 # Log file components
-our $logpath     = $home . '/baofeng/';
+our $logpath     = $home;
 our $logfilename = 'gqrxscan.log';
 our $logfile     = $logpath . $logfilename;
 our $tmplogpath  = '/tmp/';
@@ -141,9 +141,6 @@ my %mostactive;
 
 # Track how long we've been scanning
 my $timestarted = time;
-
-# Initialize the color variables to use later, but shorthand to make our printf's reasonable
-#my ( $r, $c_r, $c_g, $c_c, $c_m, $c_b, $c_y );
 
 # Save the argument list to logfile
 my @args = @ARGV;
