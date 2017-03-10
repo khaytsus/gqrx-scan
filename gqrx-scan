@@ -783,17 +783,30 @@ sub loadcsv {
     open( my $csvfile, '<', $csv );
     while ( my $line = <$csvfile> ) {
         chomp($line);
-        my ( $hz, $csvmode,, $name ) = split( /,/xms, $line );
+        my $count = () = $line =~ /\,/g;
+        if ( $count eq 2 ) {
+            my ( $hz, $csvmode,, $name ) = split( /,/xms, $line );
+            if ( $hz =~ /^\d+$/ ) {
 
-        # Make line consistent with gqrxcsv file lines
-        $line = $hz . ',' . $csvmode . ',' . ',' . ',' . $name;
-        push( @csv, $line );
+                # Make line consistent with gqrxcsv file lines
+                $line = $hz . ',' . $csvmode . ',' . ',' . ',' . $name;
+                push( @csv, $line );
 
-        # Get our max name length so our listing is dynamic
-        if ( length($name) > $nametest ) { $nametest = length($name); }
+                # Get our max name length so our listing is dynamic
+                if ( length($name) > $nametest ) {
+                    $nametest = length($name);
+                }
 
-        # See if our passed-in frequency is valid to allow resuming
-        if ( $hz eq $freq ) { $skiptune = '1'; }
+                # See if our passed-in frequency is valid to allow resuming
+                if ( $hz eq $freq ) { $skiptune = '1'; }
+            }
+            else {
+                print 'HZ value in line is not numeric: [' . $hz . ']' . "\n";
+            }
+        }
+        else {
+            print 'Invalid CSV line:  [' . $line . ']' . "\n";
+        }
     }
     close($csvfile);
     if ( $nametest <= $namewidth ) { $namewidth = $nametest; }
