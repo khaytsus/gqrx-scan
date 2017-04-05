@@ -93,6 +93,10 @@ my $clearscreen = '1';
 # Our maximum channel name width
 our $namewidth = '20';
 
+# How many tune failures do we have
+our $tunefailures    = '0';
+our $maxtunefailures = '20';
+
 ### No need to touch below here
 
 # Available GQRX demodulation modes
@@ -268,6 +272,7 @@ if ( $type eq 'file' || $type eq 'gqrxfile' ) {
     my $monitoring = '0';
     my $tuned      = '0';
     my $runs       = '0';
+    my $tuning     = '1';
 
     # Retrieve our current frequency
     $t->print('f');
@@ -300,7 +305,7 @@ if ( $type eq 'file' || $type eq 'gqrxfile' ) {
         print "Monitoring mode\n\n";
     }
 
-    while (1) {
+    while ($tuning) {
         foreach my $line (@csv) {
             my $tune          = '0';
             my $excluded      = '0';
@@ -426,6 +431,11 @@ if ( $type eq 'file' || $type eq 'gqrxfile' ) {
         else {
             repeatheader();
         }
+
+        if ( $tunefailures > $maxtunefailures ) {
+            $tuning = 0;
+            print "\nExiting loop; too many tune failures\n";
+        }
     }
 }
 
@@ -513,9 +523,6 @@ sub tune {
     # If we see this, we determined the level to be invalid
     my $emptylevel = '-150';
 
-    # If we see this, GQRX is probably not responding
-    my $deadlevel = '-200';
-
     unless ($recordingmonitor) {
         $recordstart = '0';
     }
@@ -539,17 +546,23 @@ sub tune {
         );
 
         # Verify we got a $level populated and it's a sane value
-        if ( $level ne '' ) {
+        if ( defined($level) && $level ne '' ) {
             chomp($level);
             if ( $level !~ /^-?\d+\.\d+$/ ) {
                 $level = $emptylevel;
             }
         }
-        else { $level = $emptylevel; }
+        else {
+            $level = $emptylevel;
+            $tunefailures++;
+        }
     }
 
-    if ( $level <= $deadlevel ) {
-        print "\nSignal Level at $deadlevel, GQRX may not be running\n";
+    if ( $level == $emptylevel ) {
+        print "\nSignal Level at $emptylevel, GQRX may not be running\n";
+    }
+    else {
+        $tunefailures = 0;
     }
 
     # Store the best signal we've seen for this frequency
@@ -684,7 +697,7 @@ sub tune {
         if ($wait) {
             print ' --- Waiting for clear...';
             if ($record) { print $recording; }
-            my $waitlevel  = '0';
+            my $waitlevel  = '99.9';
             my $logprint   = '1';
             my $lastsignal = '0';
 
