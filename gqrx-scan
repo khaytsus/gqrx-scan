@@ -94,10 +94,13 @@ my $clearscreen = '1';
 our $namewidth = '20';
 
 # How many tune failures do we have
-our $tunefailures    = '0';
-our $maxtunefailures = '20';
+my $tunefailures    = '0';
+my $maxtunefailures = '20';
 
 ### No need to touch below here
+
+# Set up variable for our telnet connection
+my $t;
 
 # Available GQRX demodulation modes
 my @modes = ( 'AM', 'FM', 'WFM', 'WFM_ST', 'LSB', 'USB', 'CW', 'CWL', 'CWU' );
@@ -253,19 +256,7 @@ if ( $coloroutput && $ansi ) {
     }
 }
 
-# Initiate our telnet connection
-my $t = new Net::Telnet(
-    Timeout => '2',
-    port    => $gqrxport,
-    Errmode => 'return'
-);
-
-my $openresult = $t->open($gqrxip);
-
-# Make sure we were able to connect, or fail early
-if ( !defined($openresult) || $openresult != 1 ) {
-    conerror( 'connect', __LINE__ );
-}
+gqrxconnect();
 
 if ( $type eq 'file' || $type eq 'gqrxfile' ) {
     local $| = '1';
@@ -573,6 +564,8 @@ sub tune {
         else {
             $level = $emptylevel;
             $tunefailures++;
+            # Attempt to reconnect to GQRX in case we had a temporary issue
+            gqrxconnect();
         }
     }
 
@@ -985,6 +978,25 @@ sub repeatheader {
     }
 
     return;
+}
+
+# Connect to GQRX
+sub gqrxconnect {
+    print "Connecting to GQRX..\n";
+
+    # Initiate our telnet connection
+    $t = new Net::Telnet(
+        Timeout => '2',
+        port    => $gqrxport,
+        Errmode => 'return'
+    );
+
+    my $openresult = $t->open($gqrxip);
+
+    # Make sure we were able to connect, or fail early
+    if ( !defined($openresult) || $openresult != 1 ) {
+        conerror( 'connect', __LINE__ );
+    }
 }
 
 # Test our logging path and update to tmp if we have to
