@@ -36,8 +36,8 @@ Control GQRX to scan frequencies or from channels using a CSV file.  The CSV fil
  * Scan FRS, GMRS, and all 145, 146, and 147 frequency channels
   * gqrx-scan --type file --pattern "FRS|GMR|14[5|6|7]"
 
- * Scan 28.400 to 28.410 in CW mode, pausing for a signal level of -30 for 10s
-  * gqrx-scan --type scan --start 28400000 --end 28410000 --mode CW --delaylevel=-30 --delaytime 10
+ * Scan 28.400 to 28.410 in CW mode with 500hz bandwidth, pausing for a signal level of -30 for 10s
+  * gqrx-scan --type scan --start 28400000 --end 28410000 --mode CW --bw 500 --delaylevel=-30 --delaytime 10
   * 28.400e6 is valid too and might be easier to type/read
   * Available modes: AM FM WFM WFM_ST LSB USB CW CWL CWU
 
@@ -65,6 +65,8 @@ ex:  --norecord
   * Stop at frequency 28.410
  * --mode USB
   * Scan in USB demodulation
+ * --bw 1000
+  * Set bandwidth to 1000hz
  * --step 250
   * Step by 250hz in frequency scanning mode
 
@@ -161,16 +163,16 @@ There are options in the script which can be modified to set them as defaults bu
 
 If using the gqrxfile mode, the CSV file in $HOME/.config/gqrx/bookmarks.csv will be used.  This is the file which GQRX uses for its built-in bookmarking system and contains the frequency, channel name, modulation, bandwidth, and optional tags.  Note, bandwidth is not used by GQRX Scan at this time as the GQRX Remote command set does not support setting bandwidth currently.
 
-Otherwise, you may use the generic "file" mode which is a CSV file that can be used for scanning pre-set channels is the same format as the gqrx-remote project (https://github.com/marmelo/gqrx-remote) uses, without any headers, with the columns being HZ,MODE,Name
+Otherwise, you may use the generic "file" mode which is a CSV file that can be used for scanning pre-set channels is the same format as the gqrx-remote project (https://github.com/marmelo/gqrx-remote) uses, without any headers, with the columns being HZ,MODE,Bandwidth,Name
 
 The CSV file path is defined in the file and should be updated for where your file is located.
 
 Example:
 
-28101000,CW,10m CW<br>
-28400000,USB,10m Calling<br>
-446000000,FM,440 Simplex<br>
-144200000,LSB,2m SSB Calling<br>
+28101000,CW,500,10m CW<br>
+28400000,USB,2700,10m Calling<br>
+446000000,FM,10000,440 Simplex<br>
+144200000,LSB,27000,2m SSB Calling<br>
 
 ### Recording Tips
 
@@ -213,6 +215,3 @@ With this script, you can pause the scanning using a hotkey.  How you assign tha
 
   * Optional Perl modules
    * Term::ANSIColor
-
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/khaytsus/gqrx-scan/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-

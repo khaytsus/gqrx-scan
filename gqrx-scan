@@ -117,12 +117,12 @@ my %gqrxmodes = (
 
 # Other globals to declare for options or over-ride in config
 our (
-    $config,      $type,    $mode,     $start,
-    $end,         $channel, $channels, $showall,
-    $pattern,     $tags,    $exclude,  $stop,
-    $wait,        $record,  $monitor,  $dumpchannels,
-    $coloroutput, $light,   $help,     $sort,
-    $csvfilename, $gqrxcsvfilename
+    $config,      $type,            $mode,     $start,
+    $end,         $channel,         $channels, $showall,
+    $pattern,     $tags,            $exclude,  $stop,
+    $wait,        $record,          $monitor,  $dumpchannels,
+    $coloroutput, $light,           $help,     $sort,
+    $csvfilename, $gqrxcsvfilename, $bandwidth
 );
 
 # Other globals we use elsewhere
@@ -168,6 +168,7 @@ GetOptions(
     'mode:s'             => \$mode,
     'start:s'            => \$start,
     'end:s'              => \$end,
+    'bw:s'               => \$bandwidth,
     'channel|channels:s' => \$channel,
     'showall'            => \$showall,
     'step:s'             => \$step,
@@ -385,8 +386,11 @@ if ( $type eq 'file' || $type eq 'gqrxfile' ) {
             # If we matched, tune in
             if ($tune) {
                 $tuned = '1';
-                tune( $freq, $csvmode, $curfreq, $name, $fileline, '', '',
-                    $monitoring );
+                tune(
+                    $freq, $csvmode,  $curfreq, $name,
+                    $bw,   $fileline, '',       '',
+                    $monitoring
+                );
             }
             else {
                 if ( $showall || $excluded || $dumpchannels ) {
@@ -482,8 +486,11 @@ if ( $type eq 'scan' ) {
             }
         }
         if ($tune) {
-            tune( $freq, $mode, $curfreq, '', '', $startfreq, $endfreq,
-                $monitoring );
+            tune(
+                $freq,      $mode, $curfreq,   '',
+                $bandwidth, '',    $startfreq, $endfreq,
+                $monitoring
+            );
         }
         else {
             printf( '%12s' . " Skipped\n", prettyfreq($freq) );
@@ -515,7 +522,7 @@ exit;
 
 # Tune into frequency
 sub tune {
-    my ($freq,     $tunemode,  $curfreq, $name,
+    my ($freq,     $tunemode,  $curfreq, $name, $bw,
         $fileline, $startfreq, $endfreq, $monitoring
     ) = @_;
     my $bestlevel = '0';
@@ -530,7 +537,13 @@ sub tune {
     unless ($monitoring) {
         $t->print( 'F ' . $freq );
         $t->waitfor( Match => '/RPRT/', Timeout => '5', Errmode => 'return' );
-        $t->print( 'M ' . $tunemode );
+
+        # If we seem to have a sane bandwidth to pass in, do it
+        if ( defined($bw) && $bw =~ /^\d+$/ ) {
+            $t->print( 'M ' . $tunemode . ' ' . $bw );
+        }
+        else { $t->print( 'M ' . $tunemode ); }
+
         $t->waitfor( Match => '/RPRT/', Timeout => '5', Errmode => 'return' );
     }
 
@@ -797,12 +810,12 @@ sub loadcsv {
     while ( my $line = <$csvfile> ) {
         chomp($line);
         my $count = () = $line =~ /\,/g;
-        if ( $count eq 2 ) {
-            my ( $hz, $csvmode,, $name ) = split( /,/xms, $line );
+        if ( $count eq 3 ) {
+            my ( $hz, $csvmode, $bw, $name ) = split( /,/xms, $line );
             if ( $hz =~ /^\d+$/ ) {
 
                 # Make line consistent with gqrxcsv file lines
-                $line = $hz . ',' . $csvmode . ',' . ',' . ',' . $name;
+                $line = $hz . ',' . $csvmode . ',' . ',' . $bw . ',' . $name;
                 push( @csv, $line );
 
                 # Get our max name length so our listing is dynamic
@@ -818,7 +831,9 @@ sub loadcsv {
             }
         }
         else {
-            print 'Invalid CSV line:  [' . $line . ']' . "\n";
+            print 'Invalid CSV line:  ['
+                . $line
+                . '] -- Check README File' . "\n";
         }
     }
     close($csvfile);
@@ -1251,7 +1266,11 @@ sub checkusage {
             . $startfreq . ' to '
             . $endfreq . ' in '
             . $mode
-            . "mode\n";
+            . ' mode ';
+        if ( defined($bandwidth) ) {
+            print 'and bandwidth ' . $bandwidth;
+        }
+        print "\n";
         print 'Signal level delay level of '
             . $delaylevel
             . 'waiting for '
