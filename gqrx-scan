@@ -445,6 +445,7 @@ if ( $type eq 'file' || $type eq 'gqrxfile' ) {
 
 if ( $type eq 'scan' ) {
     my $monitoring = '0';
+    my $tuning     = '1';
 
     # Retrieve our current frequency
     $t->print('f');
@@ -470,7 +471,7 @@ if ( $type eq 'scan' ) {
     }
 
     local $| = '1';
-    while (1) {
+    while ($tuning) {
         my $tune      = '1';
         my $curfreq   = prettyfreq($freq);
         my $startfreq = prettyfreq($start);
@@ -515,6 +516,10 @@ if ( $type eq 'scan' ) {
 
         print "\r";
 
+        if ( $tunefailures > $maxtunefailures ) {
+            $tuning = 0;
+            print "\nExiting loop; too many tune failures\n";
+        }
     }
 }
 
