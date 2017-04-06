@@ -196,6 +196,7 @@ With this script, you can pause the scanning using a hotkey.  How you assign tha
    * Note that the script might not be in your executable path, so even if set executable you may have to run it with the full or relative path, ie:  ./gqrx-scan
   * Cannot connect to GQRX
    * Make sure the remote configuration is set to include 127.0.0.1 and ::ffff:127.0.0.1 and the script is pointing to 127.0.0.1
+      * See this GQRX bug for more info https://github.com/csete/gqrx/issues/447
    * Make sure the port is 7356 or that the script settings are using that port
    * Make sure the GQRX remote is enabled (you must enable it every time you start GQRX)
 

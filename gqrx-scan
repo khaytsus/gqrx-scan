@@ -1358,7 +1358,8 @@ sub conerror {
     print 'Make sure TCP Remote is enabled and listening on '
         . $gqrxip
         . ' and port '
-        . $gqrxport . "\n";
+        . $gqrxport
+        . ' and check the README for more info.' . "\n";
     print "Exiting..\n";
     exit;
 }
