@@ -543,6 +543,10 @@ sub tune {
         $t->waitfor( Match => '/RPRT/', Timeout => '5', Errmode => 'return' );
     }
 
+    # Set the squelch in GQRX
+    $t->print( 'L SQL ' . $delaylevel );
+    $t->waitfor( Match => '/RPRT/', Timeout => '5', Errmode => 'return' );
+
     my $level = 'n/a';
     if ( $levelstop || $monitor ) {
         Time::HiRes::sleep($levelwait);
