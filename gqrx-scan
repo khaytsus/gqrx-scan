@@ -72,6 +72,7 @@ our $levelstop = '1';
 
 # Default Level that will cause a scanning delay or recording of audio
 our $delaylevel = '-40';
+our $squelch    = '-99';
 
 # If we see level at this value, ignore it for stopping, recording, etc.  I see this value
 # sometimes scanning, even though nothing is there.
@@ -179,6 +180,7 @@ GetOptions(
     'tags=s'             => \$tags,
     'exclude=s'          => \$exclude,
     'delaylevel:s'       => \$delaylevel,
+    'squelch:s'          => \$squelch,
     'ignorelevel:s'      => \$ignorelevel,
     'delaytime:f'        => \$delaytime,
     'pause:s'            => \$pause,
@@ -544,7 +546,7 @@ sub tune {
     }
 
     # Set the squelch in GQRX
-    $t->print( 'L SQL ' . $delaylevel );
+    $t->print( 'L SQL ' . $squelch );
     $t->waitfor( Match => '/RPRT/', Timeout => '5', Errmode => 'return' );
 
     my $level = 'n/a';
@@ -568,6 +570,7 @@ sub tune {
         else {
             $level = $emptylevel;
             $tunefailures++;
+
             # Attempt to reconnect to GQRX in case we had a temporary issue
             gqrxconnect();
         }
@@ -1176,6 +1179,11 @@ sub checkusage {
 
     if ( $delaylevel > 0 ) { usage('delaylevel'); }
 
+    # If squelch wasn't over-ridden in the config, set it to delaylevel
+    if ( $squelch eq "-99" ) {
+        $squelch = $delaylevel;
+    }
+
     # Tags are not valid in generic CSV file mode
     if ( $type eq 'file' ) {
         if ( defined($tags) ) { usage($type); }
@@ -1454,6 +1462,7 @@ sub usage {
     print
         '--delaylevel=-30       Delay scanning or record if a signal of -30 or better is heard (default: '
         . $delaylevel . ")\n";
+    print '--squelch=-40        Set GQRX squelch.  If not set, defaults to delaylevel' . "\n";
     print
         '--ignorelevel=0.0      Level that we\'ll ignore a signal from for recording or stopping (default: '
         . $ignorelevel . ")\n";

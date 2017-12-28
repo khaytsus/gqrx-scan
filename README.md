@@ -161,7 +161,7 @@ There are options in the script which can be modified to set them as defaults bu
 
 ### Bookmarks file
 
-If using the gqrxfile mode, the CSV file in $HOME/.config/gqrx/bookmarks.csv will be used.  This is the file which GQRX uses for its built-in bookmarking system and contains the frequency, channel name, modulation, bandwidth, and optional tags.  Note, bandwidth is not used by GQRX Scan at this time as the GQRX Remote command set does not support setting bandwidth currently.
+If using the gqrxfile mode, the CSV file in $HOME/.config/gqrx/bookmarks.csv will be used.  This is the file which GQRX uses for its built-in bookmarking system and contains the frequency, channel name, modulation, bandwidth, and optional tags.
 
 Otherwise, you may use the generic "file" mode which is a CSV file that can be used for scanning pre-set channels is the same format as the gqrx-remote project (https://github.com/marmelo/gqrx-remote) uses, without any headers, with the columns being HZ,MODE,Bandwidth,Name
 
@@ -178,7 +178,7 @@ Example:
 
 Be sure you set the GQRX LNA Gain to a sane, static value and not Hardware AGC or your recording won't be reliable.
 
-The squelch in GQRX must match the delaylevel or you might might miss recordings that GQRX is hearing or record noise after the transmission ends that GQRX would otherwise squelch.  Ideally set the squelch slightly more open in GQRX, example:  delaylevel equals -54, set GQRX to -60.  If you hear the recordings squelching too much during recording, tweak the GQRX squelch to open a little easier.
+The squelch in GQRX must match the delaylevel or you might might miss recordings that GQRX is hearing or record noise after the transmission ends that GQRX would otherwise squelch.  Ideally set the squelch slightly more open in GQRX, example:  delaylevel equals -54, set squelch to -60.  If you hear the recordings squelching too much during recording, tweak the squelch to open a little easier.
 
 ### Silent/Review Scripts
 
